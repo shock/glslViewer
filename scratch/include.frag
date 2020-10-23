@@ -1,3 +1,12 @@
+#ifndef I_HELPER
+#define I_HELPER
+
+mat2 Rotate(float a) {
+    float s=sin(a);
+    float c=cos(a);
+    return mat2(c,-s,s,c);
+}
+
 ///////////////////////
 // Primitives
 ///////////////////////
@@ -14,11 +23,20 @@ float fPlane(vec3 p, vec3 n, float distanceFromOrigin) {
 }
 
 
+///////////////////////
+// Boolean Operators
+///////////////////////
+
 
 // The "Chamfer" flavour makes a 45-degree chamfered edge (the diagonal of a square of size <r>):
 float fOpUnionChamfer(float a, float b, float r) {
 	return min(min(a, b), (a - r + b)*sqrt(0.5));
 }
+
+///////////////////////
+// Domain Operators
+///////////////////////
+
 
 
 // Repeat space along one axis. Use like this to repeat along the x axis:
@@ -38,3 +56,5 @@ float pModMirror1(inout float p, float size) {
 	p *= mod(c, 2.0)*2. - 1.;
 	return c;
 }
+
+#endif
