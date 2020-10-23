@@ -22,7 +22,7 @@
 std::string default_scene_frag = default_scene_frag0 + default_scene_frag1 + default_scene_frag2 + default_scene_frag3;
 
 // ------------------------------------------------------------------------- CONTRUCTOR
-Sandbox::Sandbox(): 
+Sandbox::Sandbox():
     frag_index(-1), vert_index(-1), geom_index(-1),
     verbose(false), cursor(true), fxaa(false),
     // Main Vert/Frag/Geom
@@ -45,13 +45,13 @@ Sandbox::Sandbox():
 
     // TIME UNIFORMS
     //
-    uniforms.functions["u_time"] = UniformFunction( "float", 
+    uniforms.functions["u_time"] = UniformFunction( "float",
     [this](Shader& _shader) {
         if (m_record) _shader.setUniform("u_time", m_record_head);
         else _shader.setUniform("u_time", float(getTime()));
     }, []() { return toString(getTime()); } );
 
-    uniforms.functions["u_delta"] = UniformFunction("float", 
+    uniforms.functions["u_delta"] = UniformFunction("float",
     [this](Shader& _shader) {
         if (m_record) _shader.setUniform("u_delta", float(m_record_fdelta));
         else _shader.setUniform("u_delta", float(getDelta()));
@@ -63,11 +63,17 @@ Sandbox::Sandbox():
     },
     []() { return toString(getDate(), ','); });
 
-    // MOUSE
+    // // MOUSE
+    // uniforms.functions["u_mouse"] = UniformFunction("vec2", [](Shader& _shader) {
+    //     _shader.setUniform("u_mouse", float(getMouseX()), float(getMouseY()));
+    // },
+    // []() { return toString(getMouseX()) + "," + toString(getMouseY()); } );
+
+    // MOUSE 4
     uniforms.functions["u_mouse"] = UniformFunction("vec2", [](Shader& _shader) {
-        _shader.setUniform("u_mouse", float(getMouseX()), float(getMouseY()));
+        _shader.setUniform("u_mouse", float(getMouse4().x), float(getMouse4().y));
     },
-    []() { return toString(getMouseX()) + "," + toString(getMouseY()); } );
+    []() { return toString(getMouse4().x) + "," + toString(getMouse4().y); } );
 
     // VIEWPORT
     uniforms.functions["u_resolution"]= UniformFunction("vec2", [](Shader& _shader) {
@@ -115,14 +121,14 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     _commands.push_back(Command("debug", [&](const std::string& _line){
         if (_line == "debug") {
             std::string rta = m_showPasses ? "on" : "off";
-            std::cout << "buffers," << rta << std::endl; 
+            std::cout << "buffers," << rta << std::endl;
             rta = m_showTextures ? "on" : "off";
-            std::cout << "textures," << rta << std::endl; 
+            std::cout << "textures," << rta << std::endl;
             if (geom_index != -1) {
                 rta = m_scene.showGrid ? "on" : "off";
-                std::cout << "grid," << rta << std::endl; 
+                std::cout << "grid," << rta << std::endl;
                 rta = m_scene.showAxis ? "on" : "off";
-                std::cout << "axis," << rta << std::endl; 
+                std::cout << "axis," << rta << std::endl;
                 rta = m_scene.showBBoxes ? "on" : "off";
                 std::cout << "bboxes," << rta << std::endl;
             }
@@ -154,7 +160,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     _commands.push_back(Command("histogram", [&](const std::string& _line){
         if (_line == "histogram") {
             std::string rta = m_histogram ? "on" : "off";
-            std::cout << "histogram," << rta << std::endl; 
+            std::cout << "histogram," << rta << std::endl;
             return true;
         }
         else {
@@ -167,7 +173,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "histogram[,on|off]             show/hide histogram", false));
 
-    _commands.push_back(Command("defines", [&](const std::string& _line){ 
+    _commands.push_back(Command("defines", [&](const std::string& _line){
         if (_line == "defines") {
             if (geom_index == -1)
                 m_canvas_shader.printDefines();
@@ -178,14 +184,14 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
         return false;
     },
     "defines                        return a list of active defines", false));
-    
-    _commands.push_back(Command("uniforms", [&](const std::string& _line){ 
+
+    _commands.push_back(Command("uniforms", [&](const std::string& _line){
         uniforms.print(_line == "uniforms,all");
         return true;
     },
     "uniforms[,all|active]          return a list of all or active uniforms and their values.", false));
 
-    _commands.push_back(Command("textures", [&](const std::string& _line){ 
+    _commands.push_back(Command("textures", [&](const std::string& _line){
         if (_line == "textures") {
             uniforms.printTextures();
             return true;
@@ -200,7 +206,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "textures                       return a list of textures as their uniform name and path.", false));
 
-    _commands.push_back(Command("buffers", [&](const std::string& _line){ 
+    _commands.push_back(Command("buffers", [&](const std::string& _line){
         if (_line == "buffers") {
             uniforms.printBuffers();
             if (m_postprocessing) {
@@ -210,7 +216,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
                     std::cout << "Custom";
                 std::cout << " postProcessing pass" << std::endl;
             }
-            
+
             return true;
         }
         else {
@@ -224,7 +230,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     "buffers                        return a list of buffers as their uniform name.", false));
 
     // LIGTH
-    _commands.push_back(Command("lights", [&](const std::string& _line){ 
+    _commands.push_back(Command("lights", [&](const std::string& _line){
         if (_line == "lights") {
             uniforms.printLights();
             return true;
@@ -233,16 +239,16 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "lights                         get all light data."));
 
-    _commands.push_back(Command("light_position", [&](const std::string& _line){ 
+    _commands.push_back(Command("light_position", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 4) {
-            if (uniforms.lights.size() > 0) 
+            if (uniforms.lights.size() > 0)
                 uniforms.lights[0].setPosition(glm::vec3(toFloat(values[1]),toFloat(values[2]),toFloat(values[3])));
             return true;
         }
         else if (values.size() == 5) {
             unsigned int i = toInt(values[1]);
-            if (uniforms.lights.size() > i) 
+            if (uniforms.lights.size() > i)
                 uniforms.lights[i].setPosition(glm::vec3(toFloat(values[2]),toFloat(values[3]),toFloat(values[4])));
             return true;
         }
@@ -257,7 +263,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "light_position[,<x>,<y>,<z>]   get or set the light position."));
 
-    _commands.push_back(Command("light_color", [&](const std::string& _line){ 
+    _commands.push_back(Command("light_color", [&](const std::string& _line){
          std::vector<std::string> values = split(_line,',');
         if (values.size() == 4) {
             if (uniforms.lights.size() > 0) {
@@ -279,14 +285,14 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
                 glm::vec3 color = uniforms.lights[0].color;
                 std::cout << color.x << ',' << color.y << ',' << color.z << std::endl;
             }
-            
+
             return true;
         }
         return false;
     },
     "light_color[,<r>,<g>,<b>]      get or set the light color."));
 
-    _commands.push_back(Command("light_falloff", [&](const std::string& _line){ 
+    _commands.push_back(Command("light_falloff", [&](const std::string& _line){
          std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             if (uniforms.lights.size() > 0) {
@@ -313,7 +319,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "light_falloff[,<value>]        get or set the light falloff distance."));
 
-    _commands.push_back(Command("light_intensity", [&](const std::string& _line){ 
+    _commands.push_back(Command("light_intensity", [&](const std::string& _line){
          std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             if (uniforms.lights.size() > 0) {
@@ -334,7 +340,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
             if (uniforms.lights.size() > 0) {
                 std::cout <<  uniforms.lights[0].intensity << std::endl;
             }
-            
+
             return true;
         }
         return false;
@@ -342,7 +348,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     "light_intensity[,<value>]      get or set the light intensity."));
 
     // CAMERA
-    _commands.push_back(Command("camera_distance", [&](const std::string& _line){ 
+    _commands.push_back(Command("camera_distance", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             uniforms.getCamera().setDistance(toFloat(values[1]));
@@ -356,7 +362,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_distance[,<dist>]       get or set the camera distance to the target."));
 
-    _commands.push_back(Command("camera_fov", [&](const std::string& _line){ 
+    _commands.push_back(Command("camera_fov", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             uniforms.getCamera().setFOV(toFloat(values[1]));
@@ -370,7 +376,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_fov[,<field_of_view>]   get or set the camera field of view."));
 
-    _commands.push_back(Command("camera_position", [&](const std::string& _line){ 
+    _commands.push_back(Command("camera_position", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 4) {
             uniforms.getCamera().setPosition(glm::vec3(toFloat(values[1]),toFloat(values[2]),toFloat(values[3])));
@@ -386,7 +392,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_position[,<x>,<y>,<z>]  get or set the camera position."));
 
-    _commands.push_back(Command("camera_exposure", [&](const std::string& _line){ 
+    _commands.push_back(Command("camera_exposure", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 4) {
             uniforms.getCamera().setExposure(toFloat(values[1]),toFloat(values[2]),toFloat(values[3]));
@@ -400,7 +406,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_exposure[,<aper.>,<shutter>,<sensit.>]  get or set the camera exposure values."));
 
-    // LOAD SHACER 
+    // LOAD SHACER
     // -----------------------------------------------
 
     if (vert_index != -1) {
@@ -513,7 +519,7 @@ bool Sandbox::isReady() {
     return m_initialized;
 }
 
-void Sandbox::flagChange() { 
+void Sandbox::flagChange() {
     m_change = true;
 }
 
@@ -523,7 +529,7 @@ void Sandbox::unflagChange() {
     uniforms.unflagChange();
 }
 
-bool Sandbox::haveChange() { 
+bool Sandbox::haveChange() {
 
     // std::cout << "CHANGE " << m_change << std::endl;
     // std::cout << "RECORD " << m_record << std::endl;
@@ -605,7 +611,7 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
     // UPDATE Buffers
     m_buffers_total = count_buffers(m_frag_source);
     _updateBuffers();
-    
+
     // UPDATE Postprocessing
     bool havePostprocessing = check_for_postprocessing(getSource(FRAGMENT));
     if (havePostprocessing) {
@@ -619,7 +625,7 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
         uniforms.functions["u_scene"].present = true;
         m_postprocessing = true;
     }
-    else 
+    else
         m_postprocessing = false;
 
     if (m_postprocessing || m_histogram) { //|| uniforms.functions["u_scene"].present) {
@@ -645,7 +651,7 @@ void Sandbox::_updateBuffers() {
             // New FBO
             uniforms.buffers.push_back( Fbo() );
             uniforms.buffers[i].allocate(getWindowWidth(), getWindowHeight(), COLOR_TEXTURE);
-            
+
             // New Shader
             m_buffers_shaders.push_back( Shader() );
             m_buffers_shaders[i].addDefine("BUFFER_" + toString(i));
@@ -695,12 +701,12 @@ void Sandbox::render() {
     if (geom_index != -1)
         if (uniforms.functions["u_lightShadowMap"].present)
             m_scene.renderShadowMap(uniforms);
-    
+
     // BUFFERS
     // -----------------------------------------------
     if (uniforms.buffers.size() > 0)
         _renderBuffers();
-    
+
     // MAIN SCENE
     // ----------------------------------------------- < main scene start
     if (screenshotFile != "" || m_record)
@@ -738,7 +744,7 @@ void Sandbox::render() {
         if (m_scene.showGrid || m_scene.showAxis || m_scene.showBBoxes)
             m_scene.renderDebug(uniforms);
     }
-    
+
     // ----------------------------------------------- < main scene end
 
     // POST PROCESSING
@@ -747,7 +753,7 @@ void Sandbox::render() {
 
         if (screenshotFile != "" || m_record)
             m_record_fbo.bind();
-    
+
         m_postprocessing_shader.use();
 
         // Update uniforms and textures
@@ -776,7 +782,7 @@ void Sandbox::render() {
         m_billboard_shader.setUniformTexture("u_tex0", &m_scene_fbo, 0);
         m_billboard_vbo->render( &m_billboard_shader );
     }
-    
+
     if (screenshotFile != "" || m_record) {
         m_record_fbo.unbind();
 
@@ -795,7 +801,7 @@ void Sandbox::render() {
 
 
 void Sandbox::renderUI() {
-    if (m_showPasses) {        
+    if (m_showPasses) {
         glDisable(GL_DEPTH_TEST);
 
         // DEBUG BUFFERS
@@ -856,7 +862,7 @@ void Sandbox::renderUI() {
                 #endif
             }
 
-        #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4) 
+        #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4)
             if (uniforms.functions["u_lightShadowMap"].present) {
                 float x = xOffset;
                 float y = (float)(getWindowHeight()) - xOffset;
@@ -901,7 +907,7 @@ void Sandbox::renderUI() {
         }
     }
 
-    if (m_showTextures) {        
+    if (m_showTextures) {
         glDisable(GL_DEPTH_TEST);
 
         int nTotal = uniforms.textures.size();
@@ -932,7 +938,7 @@ void Sandbox::renderUI() {
     }
 
     if (cursor) {
-        if (m_cross_vbo == nullptr) 
+        if (m_cross_vbo == nullptr)
             m_cross_vbo = cross(glm::vec3(0.0, 0.0, 0.0), 10.).getVbo();
 
         if (!m_wireframe2D_shader.isLoaded())
@@ -961,7 +967,7 @@ void Sandbox::renderDone() {
             m_record = false;
         }
     }
-    // SCREENSHOT 
+    // SCREENSHOT
     else if (screenshotFile != "") {
         onScreenshot(screenshotFile);
         screenshotFile = "";
@@ -1035,7 +1041,7 @@ void Sandbox::onFileChange(WatchFileList &_files, int index) {
             filename = _files[vert_index].path;
         }
     }
-    
+
     if (type == FRAG_SHADER) {
         m_frag_source = "";
         m_frag_dependencies.clear();
@@ -1081,7 +1087,7 @@ void Sandbox::onScroll(float _yoffset) {
         m_view2d = glm::translate(m_view2d, origin);
         m_view2d = glm::scale(m_view2d, zoom);
         m_view2d = glm::translate(m_view2d, -origin);
-        
+
         flagChange();
     }
 }
@@ -1103,7 +1109,7 @@ void Sandbox::onMouseDrag(float _x, float _y, int _button) {
             uniforms.getCamera().orbit(m_lat, m_lon, dist);
             uniforms.getCamera().lookAt(glm::vec3(0.0));
         }
-    } 
+    }
     else {
         // Right-button drag is used to zoom geometry.
         float dist = uniforms.getCamera().getDistance();
@@ -1118,8 +1124,8 @@ void Sandbox::onMouseDrag(float _x, float _y, int _button) {
 
 void Sandbox::onViewportResize(int _newWidth, int _newHeight) {
     uniforms.getCamera().setViewport(_newWidth, _newHeight);
-    
-    for (unsigned int i = 0; i < uniforms.buffers.size(); i++) 
+
+    for (unsigned int i = 0; i < uniforms.buffers.size(); i++)
         uniforms.buffers[i].allocate(_newWidth, _newHeight, COLOR_TEXTURE);
 
     if (m_postprocessing || m_histogram)
@@ -1146,7 +1152,7 @@ void Sandbox::onScreenshot(std::string _file) {
             savePixels(_file, pixels, getWindowWidth(), getWindowHeight());
             delete[] pixels;
         }
-    
+
         if (!m_record) {
             std::cout << "// Screenshot saved to " << _file << std::endl;
             std::cout << "// > ";
@@ -1169,7 +1175,7 @@ void Sandbox::onHistogram() {
         glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // Count frequencies of appearances 
+        // Count frequencies of appearances
         float max_rgb_freq = 0;
         float max_luma_freq = 0;
         glm::vec4 freqs[256];
@@ -1205,4 +1211,3 @@ void Sandbox::onHistogram() {
         uniforms.textures["u_sceneHistogram"] = m_histogram_texture;
     }
 }
-

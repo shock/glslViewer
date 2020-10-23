@@ -7,7 +7,7 @@
 #else
 #include <sys/time.h>
 #include <unistd.h>
-#endif 
+#endif
 
 #include "gl/gl.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -274,7 +274,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         result = eglBindAPI(EGL_OPENGL_ES_API);
         assert(EGL_FALSE != result);
         check();
-       
+
         static const EGLint configAttribs[] = {
             EGL_RED_SIZE, 8,
             EGL_GREEN_SIZE, 8,
@@ -381,7 +381,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
     // GLFW
     #else
 
-    
+
         glfwSetErrorCallback([](int err, const char* msg)->void {
             std::cerr << "GLFW error 0x"<<std::hex<<err<<std::dec<<": "<<msg<<"\n";
         });
@@ -392,7 +392,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
         if (_style == HEADLESS)
             glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-            
+
         else if (_style == ALLWAYS_ON_TOP)
             glfwWindowHint(GLFW_FLOATING, GL_TRUE);
 
@@ -531,7 +531,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 }
 
 bool isGL(){
- 
+
     #if defined(DRIVER_GLFW)
         return !glfwWindowShouldClose(window);
 
@@ -544,7 +544,7 @@ bool isGL(){
     #endif
 }
 
-#if defined(DRIVER_GLFW) 
+#if defined(DRIVER_GLFW)
 void debounceSetWindowTitle(std::string title){
     static double lastUpdated;
 
@@ -574,10 +574,10 @@ void updateGL(){
             now = glfwGetTime();
         }
 
-    #else 
-        // NON GLFW (VC or GBM) 
-        double now = getTimeSec();       
-    
+    #else
+        // NON GLFW (VC or GBM)
+        double now = getTimeSec();
+
     #endif
 
     fDelta = now - fTime;
@@ -599,7 +599,7 @@ void updateGL(){
         std::string title = appTitle + ":..: FPS:" + toString(fFPS);
         debounceSetWindowTitle(title);
         glfwPollEvents();
-        
+
         #else
         const int XSIGN = 1<<4, YSIGN = 1<<5;
         static int fd = -1;
@@ -709,7 +709,7 @@ void updateViewport() {
     fPixelDensity = getPixelDensity();
     glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
                 (float)viewport.z * fPixelDensity, (float)viewport.w * fPixelDensity);
-    orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity, 
+    orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity,
                                 (float)viewport.y * fPixelDensity, (float)viewport.w * fPixelDensity);
 
     onViewportResize(getWindowWidth(), getWindowHeight());
@@ -797,7 +797,7 @@ glm::vec4 getDate() {
     errno_t err = localtime_s(tm, &tv);
     if (err)
     {
-              
+
     }
 
     return glm::vec4(tm->tm_year + 1900,
@@ -813,8 +813,8 @@ glm::vec4 getDate() {
         tm->tm_mon,
         tm->tm_mday,
         tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec + tv.tv_usec * 0.000001);
-#endif 
-  
+#endif
+
 }
 
 double getTime() {
