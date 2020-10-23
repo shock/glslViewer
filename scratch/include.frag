@@ -22,6 +22,11 @@ float fPlane(vec3 p, vec3 n, float distanceFromOrigin) {
 	return dot(p, n) + distanceFromOrigin;
 }
 
+float fSphere(vec3 p, float r) {
+	return length(p) - r;
+}
+
+
 
 ///////////////////////
 // Boolean Operators
@@ -32,6 +37,23 @@ float fPlane(vec3 p, vec3 n, float distanceFromOrigin) {
 float fOpUnionChamfer(float a, float b, float r) {
 	return min(min(a, b), (a - r + b)*sqrt(0.5));
 }
+
+// The "Round" variant uses a quarter-circle to join the two objects smoothly:
+float fOpUnionRound(float a, float b, float r) {
+	vec2 u = max(vec2(r - a,r - b), vec2(0));
+	return max(r, min (a, b)) - length(u);
+}
+
+float fOpIntersectionRound(float a, float b, float r) {
+	vec2 u = max(vec2(r + a,r + b), vec2(0));
+	return min(-r, max (a, b)) + length(u);
+}
+
+float fOpDifferenceRound (float a, float b, float r) {
+	return fOpIntersectionRound(a, -b, r);
+}
+
+
 
 ///////////////////////
 // Domain Operators

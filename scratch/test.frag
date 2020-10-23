@@ -8,7 +8,7 @@ uniform vec2 u_mouse;// Mouse screen pos
 #define PI 3.1415925359
 #define MAX_STEPS 100// Mar Raymarching steps
 #define MAX_DIST 100.// Max Raymarching distance
-#define SURF_DIST.01// Surface Distance
+#define SURF_DIST.001// Surface Distance
 
 #include "include.frag"
 #include "camera.frag"
@@ -25,7 +25,7 @@ vec3 difColor = vec3(1.0, 1.0, 1.0); // Diffuse Color
 float GetDist(vec3 p)
 {
 
-    pMod1(p.x, 10.);
+    pMod1(p.x, 2.);
     // Box
     vec3 b0p = vec3(0,0.5,0);
     b0p = p - b0p;
@@ -33,13 +33,18 @@ float GetDist(vec3 p)
     // b0p.xz *= Rotate(u_time);
     float b0 = fBoxRound(b0p,vec3(.5,.5,.5),.1);
 
+    vec3 s0p = vec3( 0, 0., 0);
+    s0p = p - s0p;
+    float s0 = fSphere(s0p, 0.5);
     // Plane
     float p0 = fPlane(p, vec3(0,1,0), 0.0);
 
     // Scene
-    float scene = 0.;
-    scene = fOpUnionChamfer(p0,b0, 0.1);
+    float scene = p0;
 
+    // scene = fOpUnionChamfer(p0,b0, 0.1);
+    scene = fOpUnionRound( scene, b0, 0.1);
+    // scene = fOpUnionRound( scene, s0, 0.1);
     return scene;
 }
 
@@ -113,7 +118,17 @@ void main()
     float d=RayMarch(ro,rd);// Distance
 
     vec3 p=ro+rd*d;
-    vec3 color=vec3(GetLight(p));// Diffuse lighting
+    float light = GetLight(p);
+    float originDistance = length( p );
+
+    if(
+        // fract(originDistance * 5.) < 0.05 ||
+        fract(p.x * 2.) < 0.05 ||
+        fract(p.z * 2.) < 0.05 ||
+        // fract(p.y * 2.) < 0.05 ||
+        originDistance > MAX_DIST
+    ) { light = 0.; }
+    vec3 color=vec3(light);// Diffuse lighting
 
     // Set the output color
     gl_FragColor=vec4(color,1.);

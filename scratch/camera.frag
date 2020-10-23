@@ -6,7 +6,12 @@
 void cameraPos( vec2 uv, inout vec3 ro, inout vec3 rd ) {
 
   vec2 mPos = u_mouse / u_resolution - 0.5;
-  ro.y += (mPos.y) * 4.;
+  float camY = mPos.y;
+  camY += 0.5;
+  camY *= 4.;
+  camY *= camY;
+  camY -= 1.;
+  ro.y += camY;
 
   mat2 camXZRot = Rotate( mPos.x * 2.0 * PI );
 
