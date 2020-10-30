@@ -17,7 +17,7 @@ const vec4 GroundColor = vec4(1.0, 0.5, 1.0, 1.0);
 const vec4 BoxColor = vec4(0,0,1,1);
 
 float colorIntensity = 1.;
-float ambientLight = 0.3;
+float ambientLight = 0.2;
 vec3 difColor = vec3(1.0, 1.0, 1.0); // Diffuse Color
 
 /// Functions
@@ -25,7 +25,8 @@ vec3 difColor = vec3(1.0, 1.0, 1.0); // Diffuse Color
 float GetDist(vec3 p)
 {
 
-    pMod1(p.x, 2.);
+    pMod1(p.x, 1.5);
+    pMod1(p.z, 2.5);
     // Box
     vec3 b0p = vec3(0,0.5,0);
     b0p = p - b0p;
@@ -51,8 +52,9 @@ float GetDist(vec3 p)
 float RayMarch(vec3 ro,vec3 rd)
 {
     float dO=0.;//Distane Origin
-    for(int i=0;i<MAX_STEPS;i++)
-    {
+    int i = 0;
+    for( ; i < MAX_STEPS; i++ ) {
+
         if(dO>MAX_DIST)
             break;
 
@@ -66,6 +68,7 @@ float RayMarch(vec3 ro,vec3 rd)
         dO+=ds;
 
     }
+    // if( i == MAX_STEPS ) { return MAX_DIST; }
     return dO;
 }
 
@@ -82,25 +85,52 @@ vec3 GetNormal(vec3 p)
     return normalize(n);
 }
 
-float GetLight(vec3 p)
+// p - surface point, n - surface normal, d - ao factor
+float ao(vec3 p, vec3 n, float k) {
+	float o = 1.;
+
+    o -= ( 1. * k - GetDist( p + n * 1. * k ) ) / exp2( 1. );
+    o -= ( 2. * k - GetDist( p + n * 2. * k ) ) / exp2( 2. );
+    o -= ( 3. * k - GetDist( p + n * 3. * k ) ) / exp2( 3. );
+    o -= ( 4. * k - GetDist( p + n * 4. * k ) ) / exp2( 4. );
+    o -= ( 5. * k - GetDist( p + n * 5. * k ) ) / exp2( 5. );
+
+	return o;
+}
+
+
+float GetLight(vec3 p, vec3 ro)
 {
     // Directional light
     // vec3 lightPos=vec3(0. + 5.*sin(u_time*0.3),5.,0.0+5.*cos(u_time*0.3));// Light Position
-    vec3 lightPos=vec3(1, 5, 1);// Light Position
+    vec3 lightPos=vec3(2, 5, 1);// Light Position
 
-    vec3 l=normalize(lightPos-p);// Light Vector
-    vec3 n=GetNormal(p);// Normal Vector
+    vec3 l = normalize( lightPos - p ); // Light Vector
+    vec3 c = normalize( ro - p );       // camera vector
+    vec3 n = GetNormal( p );            // Normal Vector
 
     float dif=dot(n,l);// Diffuse light
 
     dif=clamp(dif,0.,1.);// Clamp so it doesnt go below 0
 
     // Shadows
-    float d=RayMarch(p+n*SURF_DIST*2.,l);
+    float d = RayMarch( p + n * SURF_DIST * 2.0, l );
 
-    if(d<length(lightPos-p))dif*=.1;
+    if ( d < length(lightPos-p) ) {
+        // shadow
+        dif*=.1;
+    } else {
+        // specular
+        vec3 halfAngle = normalize((l + c) * 0.5);
+        float spec = dot( halfAngle, n );
+        spec = pow( spec, 16.0 );
+        spec = pow( spec, 16.0 );
+        dif += spec;
+    }
 
     dif = dif * ( 1. - ambientLight ) + ambientLight;
+    dif *= ao( p, n, 0.1 );
+
     return dif;
 }
 
@@ -118,16 +148,14 @@ void main()
     float d=RayMarch(ro,rd);// Distance
 
     vec3 p=ro+rd*d;
-    float light = GetLight(p);
-    float originDistance = length( p );
+    float light = GetLight(p, ro);
+    // float originDistance = length( p );
+    float originDistance = d;
 
-    if(
-        // fract(originDistance * 5.) < 0.05 ||
-        fract(p.x * 2.) < 0.05 ||
-        fract(p.z * 2.) < 0.05 ||
-        // fract(p.y * 2.) < 0.05 ||
-        originDistance > MAX_DIST
-    ) { light = 0.; }
+    // grid guide
+    // if( fract(p.x * 2.) < 0.05 || fract(p.z * 2.) < 0.05 ) { light = 0.; }
+
+    if( originDistance >= MAX_DIST ) { light = 0.; }
     vec3 color=vec3(light);// Diffuse lighting
 
     // Set the output color
