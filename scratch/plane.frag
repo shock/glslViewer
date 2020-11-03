@@ -27,18 +27,26 @@ float checkers(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;
 }
 
-vec4 plane = vec4( normalize(vec3(0, 0, 1)), 18 );
+vec4 plane = vec4( normalize(vec3(0, 0, 1)), 1 );
+
+void pR(inout vec2 p, float a) {
+	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+}
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
 
-  vec3 acc = (vec3(0.0) - pos) * 0.000915  ;
-  vel += acc;
+  vec3 acc = (vec3(0.0) - pos);
+  // pR(acc.xy, length(acc));
+  float scalar = 0.0002;
+  vel += acc * scalar;
+  vel.z *= 0.9;
+  vel.z -= length(vel.xy);
 
 }
 
 vec4 iterateToPlane( vec3 ro, vec3 rd ) {
 
-  vec3 vel = rd * 0.01;
+  vec3 vel = normalize(rd);// * 0.47;
   vec3 pos = ro;
   float d = 0.;
   float steps = 0.;
@@ -46,7 +54,8 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
 
   for( float i = 0.; i < MAX_ITERATIONS; i++ ) {
     d = planeDistance( pos, vel, plane );
-    // if( d < 0.01 ) break;
+    if( d < 1.9 ) break;
+    // if( abs(d) < 0.7 ) break;
     steps += 1.0;
     changeVel( pos, vel );
 
@@ -63,15 +72,17 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
 
 }
 
-float planeColor( vec3 ro, vec3 rd ) {
+vec3 planeColor( vec3 ro, vec3 rd ) {
 
+  vec3 color = vec3(0.);
   vec4 pi = iterateToPlane( ro, rd );
   if( pi.w > 0. ) {
-    return checkers( pi.xy );
+    color.r = checkers( pi.xy );
+    color.g = pi.w;
     // return checkers( pi.xy );
-  } else {
-    return 0.;
   }
+
+  return color;
 
 }
 
@@ -83,12 +94,10 @@ void main()
 
     vec2 fragCoord = gl_FragCoord.xy;
     vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
-    vec3 ro=vec3(0,0,3.);// Ray Origin/Camera
+    vec3 ro=vec3(0,0,200.);// Ray Origin/Camera
     vec3 rd=normalize(vec3(uv.x,uv.y,-1));// Ray Direction
 
-    float val = planeColor( ro, rd );
-
-    vec3 color=vec3(val,0,0);// Diffuse lighting
+    vec3 color=planeColor( ro, rd );// Diffuse lighting
     // Set the output color
     gl_FragColor=vec4(color,1.);
 }
