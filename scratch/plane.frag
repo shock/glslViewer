@@ -1,4 +1,5 @@
 uniform vec2 u_resolution;
+uniform float u_time;
 
 #define MAX_ITERATIONS 100.
 
@@ -36,10 +37,11 @@ void pR(inout vec2 p, float a) {
 void changeVel( in vec3 pos, inout vec3 vel ) {
 
   vec3 acc = (vec3(0.0) - pos);
-  // pR(acc.xy, pos.z * 0.001);
-  float scalar = 0.001;
+  pR(acc.xy, pos.z * 0.001);
+  float scalar = 0.002;
   vel += acc * scalar;
-  vel.z *= 0.88;
+  float f = 0.8 + 0.01;// * sin( u_time );
+  vel.z *= f;
   vel.z -= length(vel.xy);
 
 }
@@ -54,8 +56,8 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
 
   for( float i = 0.; i < MAX_ITERATIONS; i++ ) {
     d = planeDistance( pos, vel, plane );
-    if( d < 1.9 ) break;
-    // if( abs(d) < 1.7 ) break;
+    // if( abs(d) < 0.6 ) break;
+    if( abs(d) < 1.7 ) break;
     steps += 1.0;
     changeVel( pos, vel );
 
