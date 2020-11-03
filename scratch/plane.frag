@@ -1,5 +1,4 @@
 uniform vec2 u_resolution;
-uniform float u_time;
 
 #define MAX_ITERATIONS 100.
 
@@ -37,16 +36,16 @@ void pR(inout vec2 p, float a) {
 void changeVel( in vec3 pos, inout vec3 vel ) {
 
   vec3 acc = (vec3(0.0) - pos);
-  pR(acc.xy, pos.z * 0.001);
-  float scalar = 0.002;
+  // pR(acc.xy, pos.z * 0.001);
+  // pR(acc.yz, pos.x * 0.005);
+  float scalar = 0.001;
   vel += acc * scalar;
-  float f = 0.8 + 0.01;// * sin( u_time );
-  vel.z *= f;
+  vel.z *= 0.88;
   vel.z -= length(vel.xy);
 
 }
 
-vec4 iterateToPlane( vec3 ro, vec3 rd ) {
+vec4 iterateToPlane( vec3 ro, inout vec3 rd ) {
 
   vec3 vel = normalize(rd);// * 0.47;
   vec3 pos = ro;
@@ -57,7 +56,7 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
   for( float i = 0.; i < MAX_ITERATIONS; i++ ) {
     d = planeDistance( pos, vel, plane );
     // if( abs(d) < 0.6 ) break;
-    if( abs(d) < 1.7 ) break;
+    if( d < 1.7 ) break;
     steps += 1.0;
     changeVel( pos, vel );
 
@@ -67,6 +66,7 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
   if( d > 0. ) {
     vec4 pi = planeIntersect( pos, vel, plane );
     pi.w = steps / MAX_ITERATIONS;
+    rd = vel;
     return pi;
   }
 
@@ -80,7 +80,8 @@ vec3 planeColor( vec3 ro, vec3 rd ) {
   vec4 pi = iterateToPlane( ro, rd );
   if( pi.w > 0. ) {
     color.r = checkers( pi.xy );
-    color.g = pi.w;
+    // color.g = pi.w;
+    color.b = dot( normalize(vec3(4,0,1)-pi.xyz), vec3(0,0,1) );
     // return checkers( pi.xy );
   }
 
