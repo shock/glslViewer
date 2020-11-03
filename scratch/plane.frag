@@ -1,6 +1,6 @@
 uniform vec2 u_resolution;
 
-#define MAX_ITERATIONS 100
+#define MAX_ITERATIONS 100.
 
 float planeDistance( in vec3 ro, in vec3 rd, in vec4 p )
 {
@@ -27,11 +27,11 @@ float checkers(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;
 }
 
-vec4 plane = vec4( normalize(vec3(0, 0, 1)), 10 );
+vec4 plane = vec4( normalize(vec3(0, 0, 1)), 18 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
 
-  vec3 acc = (vec3(0.0) - pos) * 0.00086  ;
+  vec3 acc = (vec3(0.0) - pos) * 0.000915  ;
   vel += acc;
 
 }
@@ -44,9 +44,9 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
   float steps = 0.;
   vec3 acc = vec3(0);
 
-  for( int i = 0; i < MAX_ITERATIONS; i++ ) {
+  for( float i = 0.; i < MAX_ITERATIONS; i++ ) {
     d = planeDistance( pos, vel, plane );
-    if( d < 0.01 ) break;
+    // if( d < 0.01 ) break;
     steps += 1.0;
     changeVel( pos, vel );
 
@@ -54,7 +54,9 @@ vec4 iterateToPlane( vec3 ro, vec3 rd ) {
   }
 
   if( d > 0. ) {
-    return planeIntersect( pos, vel, plane );
+    vec4 pi = planeIntersect( pos, vel, plane );
+    pi.w = steps / MAX_ITERATIONS;
+    return pi;
   }
 
   return vec4(-1.);
@@ -66,6 +68,7 @@ float planeColor( vec3 ro, vec3 rd ) {
   vec4 pi = iterateToPlane( ro, rd );
   if( pi.w > 0. ) {
     return checkers( pi.xy );
+    // return checkers( pi.xy );
   } else {
     return 0.;
   }
