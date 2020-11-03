@@ -8,7 +8,7 @@ uniform vec2 u_mouse;// Mouse screen pos
 #define PI 3.1415925359
 #define MAX_STEPS 100// Mar Raymarching steps
 #define MAX_DIST 100.// Max Raymarching distance
-#define SURF_DIST.001// Surface Distance
+#define SURF_DIST .001// Surface Distance
 
 #include "include.frag"
 #include "camera.frag"
@@ -25,27 +25,36 @@ vec3 difColor = vec3(1.0, 1.0, 1.0); // Diffuse Color
 float GetDist(vec3 p)
 {
 
-    pMod1(p.x, 1.5);
-    pMod1(p.z, 2.5);
+    // Sphere
+    vec3 s0p = vec3( 0.6, 1.6, 0);
+    s0p = p - s0p;
+    float s0 = fSphere(s0p, 0.9);
+
+    // Plane
+    float p0 = fPlane(p, vec3(0,1,0), 0.0);
+
+    // pMod1(p.x, 3.5);
+    // pMod1(p.z, 3.5);
+
+    pReflect( p, vec3( 0, -1, 0), 1.5 );
+    pReflect( p, vec3( 1, 0, 0), 1.0);
+
     // Box
-    vec3 b0p = vec3(0,0.5,0);
+    vec3 b0p = vec3(0,0.8,0);
     b0p = p - b0p;
     // b0p.xy *= Rotate(u_time);
     // b0p.xz *= Rotate(u_time);
     float b0 = fBoxRound(b0p,vec3(.5,.5,.5),.1);
 
-    vec3 s0p = vec3( 0, 0., 0);
-    s0p = p - s0p;
-    float s0 = fSphere(s0p, 0.5);
-    // Plane
-    float p0 = fPlane(p, vec3(0,1,0), 0.0);
-
     // Scene
     float scene = p0;
 
     // scene = fOpUnionChamfer(p0,b0, 0.1);
-    scene = fOpUnionRound( scene, b0, 0.1);
-    // scene = fOpUnionRound( scene, s0, 0.1);
+    scene = fOpUnionColumns( scene, b0, .2, 2.);
+    // scene = fOpUnionRound( scene, b0, 0.1);
+
+    scene = max( scene, -s0 );
+
     return scene;
 }
 
@@ -68,7 +77,7 @@ float RayMarch(vec3 ro,vec3 rd)
         dO+=ds;
 
     }
-    // if( i == MAX_STEPS ) { return MAX_DIST; }
+    if( i == MAX_STEPS ) { return MAX_DIST; }
     return dO;
 }
 
@@ -114,7 +123,7 @@ float GetLight(vec3 p, vec3 ro)
     dif=clamp(dif,0.,1.);// Clamp so it doesnt go below 0
 
     // Shadows
-    float d = RayMarch( p + n * SURF_DIST * 2.0, l );
+    float d = RayMarch( p + n * SURF_DIST * 32.0, l );
 
     if ( d < length(lightPos-p) ) {
         // shadow
@@ -129,14 +138,14 @@ float GetLight(vec3 p, vec3 ro)
     }
 
     dif = dif * ( 1. - ambientLight ) + ambientLight;
-    dif *= ao( p, n, 0.1 );
+    dif *= ao( p, n, 0.12 );
 
     return dif;
 }
 
-void main()
-{
-    vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
+float getSceneColor( vec2 fragCoord ) {
+
+    vec2 uv=(fragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
     vec2 mPos = u_mouse / u_resolution - 0.5;
     mat2 camRot = Rotate( mPos.x * 2.0 * PI );
 
@@ -153,9 +162,40 @@ void main()
     float originDistance = d;
 
     // grid guide
-    // if( fract(p.x * 2.) < 0.05 || fract(p.z * 2.) < 0.05 ) { light = 0.; }
+    if( fract(p.x * 2.) < 0.05 || fract(p.z * 2.) < 0.05 ) { light = 0.; }
+    if( floor(p.y * 2.) != 0. && fract(p.y * 2.) < 0.05 ) { light = 0.; }
 
     if( originDistance >= MAX_DIST ) { light = 0.; }
+
+    return light;
+
+}
+
+float AA_size = 2.;
+float AntiAlias( vec2 fragCoord ) {
+
+    float fragColor = 0.0;
+
+    float count = 0.0;
+    for (float aaY = 0.0; aaY < AA_size; aaY++)
+    {
+        for (float aaX = 0.0; aaX < AA_size; aaX++)
+        {
+            fragColor += getSceneColor(fragCoord + vec2(aaX, aaY) / AA_size);
+            count += 1.0;
+        }
+    }
+
+    fragColor /= count;
+
+    return fragColor;
+
+}
+
+void main()
+{
+    float light = AntiAlias( gl_FragCoord.xy );
+    // float light = getSceneColor( gl_FragCoord.xy );
     vec3 color=vec3(light);// Diffuse lighting
 
     // Set the output color
