@@ -129,12 +129,13 @@ float checkers(vec2 uv)
 
 float dots( vec2 uv ) {
   vec2 w = fwidth(uv) + 0.1;
-  // vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
+  vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
   // vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
-  vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
+  // vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
   float r = length((fract(i*0.5) - 0.5)*0.5);
   r = length(i);
   return 1. - r;
+  // return r;
 }
 
 vec3 planeColor( vec4 pi ) {
