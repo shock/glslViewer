@@ -41,7 +41,7 @@ vec4 plane = vec4( normalize(vec3(0, -0, 1)), -1 );
 // vec4 hole1 = vec4( 0, 0, 665, -0.00000004 );
 vec4 hole1 = vec4( 0, 0, -5, -40. );
 vec4 hole2 = vec4( -3, 2, 0, 2. );
-vec4 hole3 = vec4( 0, 0, 3., 0.55 );
+vec4 hole3 = vec4( 0, 0, 3.1, 0.65 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   vec3 acc = vec3(0);
@@ -51,7 +51,7 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
   h = hole1.xyz - pos;
   h.xy += 1. * mCycle2;
   // acc += normalize(h) * hole1.w / dot( h, h );
-  acc += sin(normalize(h)*PI) * hole1.w / dot( h, h ) ;
+  // acc += sin(normalize(h)*PI) * hole1.w / dot( h, h ) ;
 
   h = hole2.xyz - pos;
   h.xy += 4. * mCycle2;
@@ -59,9 +59,11 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
   // acc += sin(normalize(h)*PI) * hole2.w / dot( h, h ) ;
 
   h = hole3.xyz - pos;
-  h.xy += 2. * mCycle2;
-  acc += normalize(h) * hole3.w / dot( h, h );
-  // acc += sin(normalize(h)*PI) * hole3.w / dot( h, h ) ;
+  h.xy += 4. * mCycle2 * mouse.x;
+  // h.xy += 4. * (mouse - 0.5);
+  h.z += 4.71 * mouse.y;
+  // acc += normalize(h) * hole3.w / dot( h, h );
+  acc += sin(normalize(h) * hole3.w) / dot( h, h ) ;
   vel += acc;
 
 }
@@ -115,7 +117,7 @@ vec3 colpal1( in float t ) {
 }
 
 vec3 colpal2( in float t ) {
-  return pal( t, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(0.83,1.0,1.0),vec3(0.0,0.33,0.67) );
+  return pal( t, vec3(0.5,0.1,0.5),vec3(0.5,0.5,0.5),vec3(2.0,1.0,1.0),vec3(0.0,0.33,0.67) );
 }
 
 float checkers(vec2 uv)
@@ -125,11 +127,21 @@ float checkers(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;
 }
 
+float dots( vec2 uv ) {
+  vec2 w = fwidth(uv) + 0.1;
+  // vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
+  // vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
+  vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
+  float r = length((fract(i*0.5) - 0.5)*0.5);
+  r = length(i);
+  return 1. - r;
+}
+
 vec3 planeColor( vec4 pi ) {
 
   vec3 color = vec3(0.);
   if( pi.w >= 0. ) {
-    float ck = checkers( pi.xy * 1. );
+    float ck = dots( pi.xy * 1. );
     color = vec3(ck);
     color *= colpal2( 1. - pi.w );
 
