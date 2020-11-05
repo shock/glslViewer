@@ -2,12 +2,13 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;// Mouse screen pos
 uniform float u_time;// Mouse screen pos
 
-#define MAX_ITERATIONS 11.
-#define PLANE_SIZE 50.
+#define MAX_ITERATIONS 8.
+#define PLANE_SIZE 200.
+#define PI 3.14159
 
-vec2 mCycle = u_mouse / u_resolution;
+vec2 mouse = u_mouse / u_resolution;
 float time = u_time * 0.2;
-vec2 mCycle2 = vec2( cos( time * 3.14159 ), sin( time * 3.14159 ) );
+vec2 mCycle2 = vec2( cos( time * PI ), sin( time * PI ) );
 
 // float plane_size = mCycle2.y * PLANE_SIZE;
 float plane_size = PLANE_SIZE;
@@ -36,11 +37,11 @@ void pR(inout vec2 p, float a) {
 	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
 }
 
-vec4 plane = vec4( normalize(vec3(0, 0, 1)), 0 );
+vec4 plane = vec4( normalize(vec3(0, -0, 1)), -1 );
 // vec4 hole1 = vec4( 0, 0, 665, -0.00000004 );
-vec4 hole1 = vec4( 10, 0, 0, 0.0001 );
-vec4 hole2 = vec4( -10, 2, 0, 0.0001 );
-vec4 hole3 = vec4( 0, 0, 10, 0.0001 );
+vec4 hole1 = vec4( 0, 0, -5, -40. );
+vec4 hole2 = vec4( -3, 2, 0, 2. );
+vec4 hole3 = vec4( 0, 0, 3., 0.55 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   vec3 acc = vec3(0);
@@ -49,38 +50,26 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
 
   h = hole1.xyz - pos;
   h.xy += 1. * mCycle2;
-  acc += normalize(h) * dot( h, h ) * hole1.w;
+  // acc += normalize(h) * hole1.w / dot( h, h );
+  acc += sin(normalize(h)*PI) * hole1.w / dot( h, h ) ;
 
   h = hole2.xyz - pos;
   h.xy += 4. * mCycle2;
-  acc += normalize(h) * dot( h, h ) * hole2.w;
+  // acc += normalize(h) * hole2.w / dot( h, h );
+  // acc += sin(normalize(h)*PI) * hole2.w / dot( h, h ) ;
 
   h = hole3.xyz - pos;
   h.xy += 2. * mCycle2;
-  acc += normalize(h) * dot( h, h ) * hole3.w;
-
+  acc += normalize(h) * hole3.w / dot( h, h );
+  // acc += sin(normalize(h)*PI) * hole3.w / dot( h, h ) ;
   vel += acc;
 
 }
 
-void cv1( vec3 pos, inout vec3 vel ) {
-
-  vec3 h = vec3(0,0,10);
-  // h.xy += 2. * mCycle2;
-  vec3 acc = h - pos;
-  float l = dot( acc, acc );
-  // l = length( acc );
-  acc = normalize(acc);
-  // vel.z += pos.x * 0.001;
-  // vel.z += pos.y * 0.001;
-  vel += acc * l * 0.0001;
-}
-
 vec4 iterateToPlane( vec3 ro, inout vec3 rd ) {
 
-  vec3 vel = vec3(0,0,-0.1);
+  vec3 vel = rd;
   vec3 pos = ro;
-  pos.xy += rd.xy * 60.;
   float d = 0.;
   float steps = 0.;
   vec3 lastVel = vel;
@@ -103,12 +92,9 @@ vec4 iterateToPlane( vec3 ro, inout vec3 rd ) {
 
   // if( d > 0. ) {
     vec4 pi = planeIntersect( pos, vel, plane );
-    vec4 pi2 = planeIntersect( ro, rd, plane );
     // if( pi.w > 0. ) {
-      // pi.w = steps / MAX_ITERATIONS;
       vec3 cp = normalize(ro - pi.xyz);
-      vec3 cp2 = normalize(ro - pi2.xyz);
-      // cp = normalize((cp + cp2) * 0.5);
+      vec3 cp2 = vec3(0,0,1);
       pi.w = clamp(dot( cp, cp2 ), 0., 1.);
       rd = vel;
       return pi;
@@ -124,11 +110,11 @@ vec3 pal( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d )
     return a + b*cos( 6.28318*(c*t+d) );
 }
 
-vec3 colpal2( in float t ) {
-  return pal( t, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.33,0.67) );
+vec3 colpal1( in float t ) {
+  return pal( t, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.10,0.20) );
 }
 
-vec3 colpal1( in float t ) {
+vec3 colpal2( in float t ) {
   return pal( t, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(0.83,1.0,1.0),vec3(0.0,0.33,0.67) );
 }
 
@@ -144,16 +130,12 @@ vec3 planeColor( vec4 pi ) {
   vec3 color = vec3(0.);
   if( pi.w >= 0. ) {
     float ck = checkers( pi.xy * 1. );
-    // ck = 1.;
-    // if( ck > 0.99 ) {
-      color = vec3(ck);
-      color *= colpal1( 1. - pi.w );
-      // color = colpal1( pi.w );
-    // }
-    // color.r = ck;
-    // // color.g = pi.w;
+    color = vec3(ck);
+    color *= colpal2( 1. - pi.w );
 
-    color += dot( normalize(vec3(3,0,1)-vec3(pi.xy, 0.0)), vec3(0,0,1) );
+    // color = colpal2( pi.w );
+
+    // color += dot( normalize(vec3(3,0,1)-vec3(pi.xy, 0.0)), vec3(0,0,1) );
 
     // return checkers( pi.xy );
   }
@@ -162,29 +144,33 @@ vec3 planeColor( vec4 pi ) {
 
 }
 
-float getLight( vec3 ro, vec4 pi) {
+vec3 getLight( vec3 ro, vec3 rd, vec4 pi) {
 
-  if( pi.w < 0. ) return 0.;
-  vec3 lp = vec3( 2. * mCycle2.x, 2. * mCycle2.y, 1 );
-  vec3 p = vec3(pi.xy, 0);
-  vec3 lo = lp - p;
-  vec3 co = ro - p;
-  vec3 ha = (lo + co) * 0.5;
+  if( pi.w < 0. ) return vec3(0.);
+  // vec3 lp = vec3( 2. * mCycle2.x, 2. * mCycle2.y, 1 );
+  vec3 lp = vec3( 0, 0, 1 );
+  // lp = vec3( mouse * 10. - 5., 1);
+  vec4 pir = planeIntersect( ro, rd, plane );
+  vec3 lo = lp - pir.xyz;
+  vec3 co = ro - pir.xyz;
+  vec3 ha = (lo - co) * 0.5;
   float spec = dot( normalize(ha), normalize(co) );
   spec = pow(spec, 30.);
   spec = pow(spec, 30.);
-  return spec;
+  spec = pow(spec, 30.);
+  // return colpal2(clamp(spec, 0., 1.)) * spec;
+  return vec3(spec);
 
 }
 
 vec3 getPixelColor( vec2 fragCoord ) {
   vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
-  vec3 ro=vec3(0,0,10.);// Ray Origin/Camera
-  vec3 rd=vec3(uv.x,uv.y,-1);// Ray Direction
+  vec3 ro=vec3(0,0,6.1);// Ray Origin/Camera
+  vec3 rd = normalize(vec3(uv * 1.,-0.35));
 
   vec4 pi = iterateToPlane( ro, rd );
   vec3 color=planeColor( pi );
-  // color += getLight( ro, pi );
+  color += getLight( ro, rd, pi );
   return color;
 }
 
@@ -205,12 +191,12 @@ void main()
   // float light = getSceneColor( gl_FragCoord.xy );
 
   vec2 fragCoord = gl_FragCoord.xy;
-  vec3 color = getPixelColor( fragCoord );
+  vec3 color = antiAlias( fragCoord );
   // vec3 color = antiAlias( fragCoord );
   // color += getLight( ro, pi );
   // Set the output color
   if( fragCoord.y < 10. ) {
-    color = colpal1( fragCoord.x / u_resolution.x );
+    color = colpal2( fragCoord.x / u_resolution.x );
   }
 
   gl_FragColor=vec4(color,1.);
