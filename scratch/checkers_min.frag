@@ -22,7 +22,7 @@ vec4 planeIntersect( vec3 ro, vec3 rd, vec4 p ) {
   return i;
 }
 
-vec4 plane = vec4( normalize(vec3(0, 0.00, 1.4)), 0.0 );
+vec4 plane = vec4( normalize(vec3(0, 2.990, 0.0)), -0.1 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   // return;
@@ -32,7 +32,8 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
 
   h = vec3( 0, 0, 2.415) - pos;
   // h = vec3( 0, 0, 2.355) - pos;
-  // h.z += 0.61 * mCycle1.x;
+  h.z += 0.61 * mCycle1.x;
+  h.xy += (sin(u_time * 5.1) * 0.001 + 0.01) * mCycle2;
   // h.z *= mouse.x;
   acc += sin(normalize(h) * 0.35) / dot( h, h ) ;
   vel += acc;
@@ -61,6 +62,7 @@ vec3 pal( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d ) {
 }
 
 vec3 colpal2( in float t ) {
+  t = fract(t + sin(u_time * 0.098));
   return pal( t, vec3(0.5,0.0,0.5),vec3(0.5,0.5,0.5),vec3(2.0,1.0,1.0),vec3(0.0,0.33,0.67) );
 }
 
@@ -141,8 +143,8 @@ vec3 getPixelColor( vec2 fragCoord ) {
 
     color=planeColor( pi );
     float r = 0.;//sin(u_time*2.) * 0.1;
-    // vec3 lp =
-    color += pow(getLight( ro, rd, vec3( r + 1. * mCycle2.x, r + 1. * mCycle2.y, 1 ) ), 30.);
+    vec3 lp = vec3( r + 1. * mCycle2.x, r + 1. * mCycle2.y, 1 ) - plane.xyz;
+    color += pow(getLight( ro, rd, lp), 30.);
   }
 
   return color;
@@ -164,9 +166,6 @@ void main()
 
   vec2 fragCoord = gl_FragCoord.xy;
   vec3 color = antiAlias( fragCoord );
-  // if( fragCoord.y < 10. ) {
-  //   color = colpal2( fragCoord.x / u_resolution.x );
-  // }
   gl_FragColor=vec4(color,1.);
 
 }
