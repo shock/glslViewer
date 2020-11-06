@@ -41,8 +41,8 @@ void pR(inout vec2 p, float a) {
 vec4 plane = vec4( normalize(vec3(0, -0, 1)), -1 );
 // vec4 hole1 = vec4( 0, 0, 665, -0.00000004 );
 vec4 hole1 = vec4( 0, 0, -5, -40. );
-vec4 hole2 = vec4( -0, 0, 1, 1. );
-vec4 hole3 = vec4( 0, 0, 3.1, 0.25 );
+vec4 hole2 = vec4( -0, 0, 1, 2. );
+vec4 hole3 = vec4( 0, 0, 5.355, 0.35 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   vec3 acc = vec3(0);
@@ -55,15 +55,15 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
   // acc += sin(normalize(h)*PI) * hole1.w / dot( h, h ) ;
 
   h = hole2.xyz - pos;
-  h.xy += 4. * mCycle2;
+  h.xy += 1. * mCycle2;
   // acc += normalize(h) * hole2.w / dot( h, h );
-  // acc += sin(normalize(h)*PI) * hole2.w / dot( h, h ) ;
+  acc += sin(normalize(h)*PI) * hole2.w / dot( h, h ) ;
 
   h = hole3.xyz - pos;
   // h.xy += 4. * mouse.x;
   // h.xy += 4. * (mouse - 0.5);
-  h.z += 4.71 * mouse.y;
-  // h.z += 4.71 * mCycle1.x;
+  // h.z += 4.71 * mouse.y;
+  h.z += 2.31 * mCycle1.x;
   // acc += normalize(h) * hole3.w / dot( h, h );
   acc += sin(normalize(h) * hole3.w) / dot( h, h ) ;
   vel += acc;
@@ -146,24 +146,10 @@ float tiles( vec2 uv ) {
 }
 
 float dots( vec2 uv ) {
-  vec2 w = fwidth(uv) + 0.0;
-  // vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
-  // vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
-  // vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
-  // float r = length((fract(i*0.5) - 0.5)*2.9);
-  vec2 i1 = uv + 0.5 * w;
-  vec2 i2 = uv - 0.5 * w;
-  float r = length((fract(uv*0.5) - 0.5)*2.9);
-  float r1 = length((fract(w*0.5) - 0.5)*1.0);
-  // r = (r+r1) / 2.;
-  // r = i.x + i.y;
-  // r = length(i);
-  // r = i.x * i.y;
+  float r = length( fract(uv) * 2. - 1. );
+  // r /= 1.4142;
+  if( r >= 1. ) r -= (r - 1.) * 0.2;
   r = 1. - r;
-  // r = r * r;
-  // r = r * r;
-  // r = r * r;
-  // r = 1. - r;
   return r;
 }
 
@@ -171,10 +157,12 @@ vec3 planeColor( vec4 pi ) {
 
   vec3 color = vec3(0.);
   if( pi.w >= 0. ) {
-    float ck = dots( pi.xy * 1. );
+    float ck = checkers( pi.xy * 1. );
     color = vec3(ck);
     color *= colpal2( 1. - pi.w );
-
+    if( length(fwidth( pi.xy * 0.1 )) > 0. ) {
+      // color *= 0.;
+    }
     // color = colpal2( pi.w );
 
     // color += dot( normalize(vec3(3,0,1)-vec3(pi.xy, 0.0)), vec3(0,0,1) );
@@ -189,8 +177,8 @@ vec3 planeColor( vec4 pi ) {
 vec3 getLight( vec3 ro, vec3 rd, vec4 pi) {
 
   if( pi.w < 0. ) return vec3(0.);
-  // vec3 lp = vec3( 2. * mCycle2.x, 2. * mCycle2.y, 1 );
-  vec3 lp = vec3( 0, 0, 1 );
+  vec3 lp = vec3( 2. * mCycle2.x, 2. * mCycle2.y, 1 );
+  // vec3 lp = vec3( 0, 0, 1 );
   // lp = vec3( mouse * 10. - 5., 1);
   vec4 pir = planeIntersect( ro, rd, plane );
   vec3 lo = lp - pir.xyz;
