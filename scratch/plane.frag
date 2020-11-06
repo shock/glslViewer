@@ -2,12 +2,13 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;// Mouse screen pos
 uniform float u_time;// Mouse screen pos
 
-#define MAX_ITERATIONS 8.
+#define MAX_ITERATIONS 3.
 #define PLANE_SIZE 200.
 #define PI 3.14159
 
 vec2 mouse = u_mouse / u_resolution;
 float time = u_time * 0.2;
+vec2 mCycle1 = vec2( cos( time * PI * 0.1 ), sin( time * PI * 0.1 ) );
 vec2 mCycle2 = vec2( cos( time * PI ), sin( time * PI ) );
 
 // float plane_size = mCycle2.y * PLANE_SIZE;
@@ -40,8 +41,8 @@ void pR(inout vec2 p, float a) {
 vec4 plane = vec4( normalize(vec3(0, -0, 1)), -1 );
 // vec4 hole1 = vec4( 0, 0, 665, -0.00000004 );
 vec4 hole1 = vec4( 0, 0, -5, -40. );
-vec4 hole2 = vec4( -3, 2, 0, 2. );
-vec4 hole3 = vec4( 0, 0, 3.1, 0.65 );
+vec4 hole2 = vec4( -0, 0, 1, 1. );
+vec4 hole3 = vec4( 0, 0, 3.1, 0.25 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   vec3 acc = vec3(0);
@@ -59,9 +60,10 @@ void changeVel( in vec3 pos, inout vec3 vel ) {
   // acc += sin(normalize(h)*PI) * hole2.w / dot( h, h ) ;
 
   h = hole3.xyz - pos;
-  h.xy += 4. * mCycle2 * mouse.x;
+  // h.xy += 4. * mouse.x;
   // h.xy += 4. * (mouse - 0.5);
   h.z += 4.71 * mouse.y;
+  // h.z += 4.71 * mCycle1.x;
   // acc += normalize(h) * hole3.w / dot( h, h );
   acc += sin(normalize(h) * hole3.w) / dot( h, h ) ;
   vel += acc;
@@ -127,15 +129,42 @@ float checkers(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;
 }
 
-float dots( vec2 uv ) {
+float tiles( vec2 uv ) {
   vec2 w = fwidth(uv) + 0.1;
-  vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
+  // vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
+  vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
+  // vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
+  float r = length((fract(i*0.5) - 0.5)*2.9);
+  r = length(i);
+  // r = i.x * i.y;
+  r = 1. - r;
+  // r = r * r;
+  // r = r * r;
+  // r = r * r;
+  // r = 1. - r;
+  return r;
+}
+
+float dots( vec2 uv ) {
+  vec2 w = fwidth(uv) + 0.0;
+  // vec2 i = 2.0*(abs(fract((uv-0.5*w)*0.5)-0.5)-abs(fract((uv+0.5*w)*0.5)-0.5))/w;
   // vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
   // vec2 i = 2.0*(length(fract((uv-0.5*w)*0.5)-0.5)-length(fract((uv+0.5*w)*0.5)-0.5))/w;
-  float r = length((fract(i*0.5) - 0.5)*0.5);
-  r = length(i);
-  return 1. - r;
-  // return r;
+  // float r = length((fract(i*0.5) - 0.5)*2.9);
+  vec2 i1 = uv + 0.5 * w;
+  vec2 i2 = uv - 0.5 * w;
+  float r = length((fract(uv*0.5) - 0.5)*2.9);
+  float r1 = length((fract(w*0.5) - 0.5)*1.0);
+  // r = (r+r1) / 2.;
+  // r = i.x + i.y;
+  // r = length(i);
+  // r = i.x * i.y;
+  r = 1. - r;
+  // r = r * r;
+  // r = r * r;
+  // r = r * r;
+  // r = 1. - r;
+  return r;
 }
 
 vec3 planeColor( vec4 pi ) {
@@ -204,8 +233,8 @@ void main()
   // float light = getSceneColor( gl_FragCoord.xy );
 
   vec2 fragCoord = gl_FragCoord.xy;
+  // vec3 color = getPixelColor( fragCoord );
   vec3 color = antiAlias( fragCoord );
-  // vec3 color = antiAlias( fragCoord );
   // color += getLight( ro, pi );
   // Set the output color
   if( fragCoord.y < 10. ) {
