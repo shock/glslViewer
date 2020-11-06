@@ -22,7 +22,7 @@ vec4 planeIntersect( vec3 ro, vec3 rd, vec4 p ) {
   return i;
 }
 
-vec4 plane = vec4( normalize(vec3(0, 2.990, 0.0)), -0.1 );
+vec4 plane = vec4( normalize(vec3(0, 0, 1.0)), 0.0 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   // return;
@@ -73,20 +73,50 @@ float checkers(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;
 }
 
+vec2 p( in vec2 x )
+{
+    vec2 h = fract(x/2.0)-0.5;
+    return x*0.5 + h*(1.0-2.0*abs(h));
+}
+
+float checkers2(vec2 uv)
+{
+    vec2 w = fwidth(uv) + 0.001;
+    vec2 i = (p(uv+w)-2.0*p(uv)+p(uv-w))/(w*w); // analytical integral (triangle filter)
+    return 0.5 - 0.5*i.x*i.y;                   // xor pattern
+}
+
+float grid( vec2 uv ) {
+  vec2 w = fwidth(uv) + 0.1;
+  vec2 i = 2.0 * ( length( fract((uv-0.5)*0.5) - 0.5 ) - length(fract((uv+0.5)*0.5)-0.5) ) / w;
+  float r = length((fract(i*0.5) - 0.5)*2.9);
+  r = length(i);
+  r = 1. - r;
+  r = clamp(r, 0., 1.);
+  r = mix( r, 0.28, min(length(fwidth(uv)),0.9));
+  // r = r * smoothstep(1.0,0.5,fwidth(r));
+  // if( r >= 1. ) r -= (r - 1.) * 0.2;
+  return r;
+}
+
 float tiles( vec2 uv ) {
   vec2 w = fwidth(uv) + 0.1;
   vec2 i = 2.0 * ( length( fract((uv-0.5*w)*0.5) - 0.5 ) - length(fract((uv+0.5*w)*0.5)-0.5) ) / w;
   float r = length((fract(i*0.5) - 0.5)*2.9);
   r = length(i);
   r = 1. - r;
-  if( r >= 1. ) r -= (r - 1.) * 0.2;
+  r = clamp(r, 0., 1.);
+  r = mix( r, 0.28, min(length(fwidth(uv)),0.9));
+  // r = r * smoothstep(1.0,0.5,fwidth(r));
+  // if( r >= 1. ) r -= (r - 1.) * 0.2;
   return r;
 }
 
 float dots( vec2 uv ) {
   float r = length( fract(uv) * 2. - 1. );
-  // r /= 1.4142;
-  if( r >= 1. ) r -= (r - 1.) * 0.2;
+  r /= 1.4142;
+  float w = length(fwidth(uv));
+  r = mix( r, 0.5, min(w,1.));
   r = 1. - r;
   return r;
 }
@@ -109,7 +139,7 @@ vec3 planeColor( vec4 pi ) {
   vec3 color = vec3(0.);
   float c1 = dots( pi.xy * 1.0 );
   float c2 = tiles( pi.xy * 2. );
-  float c3 = checkers( pi.xy * 1. );
+  float c3 = checkers2( pi.xy * 1. );
   float t = u_time * 0.1;
   float c = triFade( vec3(c1,c2,c3), t);
   color = vec3(c);
@@ -129,10 +159,20 @@ float getLight( vec3 ro, vec3 rd, vec3 lp ) {
   return spec;
 }
 
+void pR(inout vec2 p, float a) {
+	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+}
+
 vec3 getPixelColor( vec2 fragCoord ) {
   vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
-  vec3 ro=vec3(0,0,3.9);
+  vec3 ro=vec3(0,1,3.9);
   vec3 rd = normalize(vec3(uv * 1.,-0.35));
+  // vec3 rd = normalize(vec3(uv * 1.,-1));
+  // pR( rd.yz, -1.1 * (sin(u_time * 0.4) * 0.5 + 0.5) );
+  pR( rd.yz, -1.1 );
+  pR( rd.xy, u_time * 0.2 );
+  // pR( rd.yz, 0.1 );
+
   vec3 color = vec3(0.);
 
   vec4 pi = iterateToPlane( ro, rd );
@@ -165,7 +205,7 @@ void main()
 {
 
   vec2 fragCoord = gl_FragCoord.xy;
-  vec3 color = antiAlias( fragCoord );
+  vec3 color = getPixelColor( fragCoord );
   gl_FragColor=vec4(color,1.);
 
 }
