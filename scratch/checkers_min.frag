@@ -6,7 +6,7 @@ uniform float u_time;// Mouse screen pos
 
 vec2 mouse = u_mouse / u_resolution;
 float time = u_time * 0.2;
-vec2 mCycle1 = vec2( cos( time * PI * 0.1 ), sin( time * PI * 0.1 ) );
+vec2 mCycle1 = vec2( cos( time * PI * 0.5 ), sin( time * PI * 0.5 ) );
 vec2 mCycle2 = vec2( cos( time * PI ), sin( time * PI ) );
 
 float planeDistance( in vec3 ro, in vec3 rd, in vec4 p )
@@ -18,20 +18,22 @@ float planeDistance( in vec3 ro, in vec3 rd, in vec4 p )
 vec4 planeIntersect( vec3 ro, vec3 rd, vec4 p ) {
   float d = planeDistance( ro, rd, p );
   vec4 i = vec4(ro + rd * d, 1.0);
+  // i.w = d;
   return i;
 }
 
-vec4 plane = vec4( normalize(vec3(0, -0, 1)), -1 );
+vec4 plane = vec4( normalize(vec3(0, 0.00, 1.4)), 0.0 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
+  // return;
   vec3 h = vec3( -0, 0, 1 ) - pos;
   h.xy += mCycle2;
-  vec3 acc = sin(normalize(h)*PI) * 2. / dot( h, h ) ;
+  vec3 acc = sin(normalize(h)*PI * 0.1) * 0.1 / dot( h, h ) ;
 
-  h = vec3( 0, 0, 3.355) - pos;
+  h = vec3( 0, 0, 2.415) - pos;
   // h = vec3( 0, 0, 2.355) - pos;
-  h.z += 3.31 * mCycle1.x;
-  h.z *= mouse.x;
+  // h.z += 0.61 * mCycle1.x;
+  // h.z *= mouse.x;
   acc += sin(normalize(h) * 0.35) / dot( h, h ) ;
   vel += acc;
 }
@@ -51,9 +53,6 @@ vec4 iterateToPlane( vec3 ro, inout vec3 vel ) {
   }
 
   vec4 pi = planeIntersect( pos, vel, plane );
-  vec3 cp = normalize(ro - pi.xyz);
-  vec3 cp2 = vec3(0,0,1);
-  pi.w = clamp(dot( cp, cp2 ), 0., 1.);
   return pi;
 }
 
@@ -90,12 +89,30 @@ float dots( vec2 uv ) {
   return r;
 }
 
+float triFade( vec3 sig123, float t ) {
+  float t1 = 1.0 - 2.0 * abs( fract( t ) - 0.5 );
+  t1 = 1.5 * max( -0.0, t1 - 0.333333 );
+  t1 = smoothstep(0., 1., t1);
+  float t2 = 1.0 - 2.0 * abs( fract( t + 0.33333 ) - 0.5 );
+  t2 = 1.5 * max( -0.0, t2 - 0.333333 );
+  t2 = smoothstep(0., 1., t2);
+  float t3 = 1.0 - 2.0 * abs( fract( t + 0.66667 ) - 0.5 );
+  t3 = 1.5 * max( -0.0, t3 - 0.333333 );
+  t3 = smoothstep(0., 1., t3);
+  float c = t1*sig123.x + t2*sig123.y + t3*sig123.z;
+  return c;
+}
+
 vec3 planeColor( vec4 pi ) {
   vec3 color = vec3(0.);
-  float ck = checkers( pi.xy * 1. );
-  color = vec3(ck);
-  color *= colpal2( 1. - pi.w );
-  color += pow(dot( normalize(vec3(0,0,1)-vec3(pi.xy, 0.0)), vec3(0,0,1) ), 8.);
+  float c1 = dots( pi.xy * 1.0 );
+  float c2 = tiles( pi.xy * 2. );
+  float c3 = checkers( pi.xy * 1. );
+  float t = u_time * 0.1;
+  float c = triFade( vec3(c1,c2,c3), t);
+  color = vec3(c);
+  color *= colpal2( fract(1. - pi.w + 0.98) );
+  color += pow(dot( normalize(plane.xyz-vec3(pi.xy, 0.0)), plane.xyz ), 8.);
   return color;
 }
 
@@ -114,11 +131,20 @@ vec3 getPixelColor( vec2 fragCoord ) {
   vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
   vec3 ro=vec3(0,0,3.9);
   vec3 rd = normalize(vec3(uv * 1.,-0.35));
+  vec3 color = vec3(0.);
 
   vec4 pi = iterateToPlane( ro, rd );
-  vec3 color=planeColor( pi );
-  float r = 1. + mCycle2.x * 2.;
-  color += pow(getLight( ro, rd, vec3( r * mCycle2.x, r * mCycle2.y, 1 ) ), 30.);
+  if( pi.w > -0. ) {
+    vec3 cp = normalize(ro - pi.xyz);
+    vec3 cp2 = plane.xyz;
+    pi.w = clamp(dot( cp, cp2 ), 0., 1.);
+
+    color=planeColor( pi );
+    float r = 0.;//sin(u_time*2.) * 0.1;
+    // vec3 lp =
+    color += pow(getLight( ro, rd, vec3( r + 1. * mCycle2.x, r + 1. * mCycle2.y, 1 ) ), 30.);
+  }
+
   return color;
 }
 
