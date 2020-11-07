@@ -22,7 +22,27 @@ vec4 planeIntersect( vec3 ro, vec3 rd, vec4 p ) {
   return i;
 }
 
-vec4 plane = vec4( normalize(vec3(0, 0, 1.0)), 0.0 );
+float sphDistance( in vec3 ro, in vec3 rd, in vec4 sph )
+{
+	vec3 oc = ro - sph.xyz;
+	float b = dot( oc, rd );
+	float c = dot( oc, oc ) - sph.w*sph.w;
+	float h = b*b - c;
+	if( h<0.0 ) return -1.0;
+	return -b - sqrt( h );
+}
+
+vec4 sphIntersect( vec3 ro, vec3 rd, vec4 sph ) {
+  vec4 i = vec4(-1.);
+  float d = sphDistance( ro, rd, sph );
+  if( d > 0. ) {
+    i.xyz = ro + rd * d;
+    i.w = d;
+  }
+  return i;
+}
+
+vec4 plane = vec4( normalize(vec3(0, 0, 1.0)), 1.00 );
 
 void changeVel( in vec3 pos, inout vec3 vel ) {
   // return;
@@ -62,7 +82,7 @@ vec3 pal( in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d ) {
 }
 
 vec3 colpal2( in float t ) {
-  t = fract(t + sin(u_time * 0.098));
+  t = fract(t - u_time * 0.048);
   return pal( t, vec3(0.5,0.0,0.5),vec3(0.5,0.5,0.5),vec3(2.0,1.0,1.0),vec3(0.0,0.33,0.67) );
 }
 
@@ -86,9 +106,9 @@ float checkers2(vec2 uv)
     return 0.5 - 0.5*i.x*i.y;                   // xor pattern
 }
 
-float grid( vec2 uv ) {
-  vec2 w = fwidth(uv) + 0.1;
-  vec2 i = 2.0 * ( length( fract((uv-0.5)*0.5) - 0.5 ) - length(fract((uv+0.5)*0.5)-0.5) ) / w;
+float planes( vec2 uv ) {
+  vec2 w = fwidth(uv) + 0.5;
+  vec2 i = 2.0 * ( length( fract((uv-0.5)*0.5) - 0.5 ) - length(fract((uv+0.5)*0.5)-0.5) ) / fract(uv);
   float r = length((fract(i*0.5) - 0.5)*2.9);
   r = length(i);
   r = 1. - r;
@@ -96,6 +116,17 @@ float grid( vec2 uv ) {
   r = mix( r, 0.28, min(length(fwidth(uv)),0.9));
   // r = r * smoothstep(1.0,0.5,fwidth(r));
   // if( r >= 1. ) r -= (r - 1.) * 0.2;
+  return r;
+}
+
+float grid( vec2 uv ) {
+  vec2 w = fwidth(uv) + 0.2;
+  vec2 i = 2.0 * ( length( fract((uv-0.5)*0.5) - 0.5 ) - length(fract((uv+0.5)*0.5)-0.5) ) / w;
+  float r = length((fract(i*0.5) - 0.5)*2.9);
+  r = length(i);
+  r = 1. - r;
+  r = clamp(r, 0., 1.);
+  r = mix( r, 0.28, min(length(fwidth(uv)),0.9));
   return r;
 }
 
@@ -138,11 +169,12 @@ float triFade( vec3 sig123, float t ) {
 vec3 planeColor( vec4 pi ) {
   vec3 color = vec3(0.);
   float c1 = dots( pi.xy * 1.0 );
-  float c2 = tiles( pi.xy * 2. );
-  float c3 = checkers2( pi.xy * 1. );
+  float c2 = planes( pi.xy * 1. );
+  float c3 = tiles( pi.xy * 2. );
   float t = u_time * 0.1;
   float c = triFade( vec3(c1,c2,c3), t);
   color = vec3(c);
+  pi.w = dot( normalize(vec3(0,0,1)), normalize(vec3(pi.xy,1.)));
   color *= colpal2( fract(1. - pi.w + 0.98) );
   color += pow(dot( normalize(plane.xyz-vec3(pi.xy, 0.0)), plane.xyz ), 8.);
   return color;
@@ -163,29 +195,58 @@ void pR(inout vec2 p, float a) {
 	p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
 }
 
+vec4 sphere = vec4( 2, 2, 3. + mCycle2.x, 1);
+vec4 sphere2 = vec4( -2, -2, 3. - mCycle2.x, 1);
+
+vec3 sphereColor( vec4 sphere, vec4 si, vec3 ro ) {
+  vec3 color = vec3(0.0);
+  vec3 n = normalize(si.xyz - sphere.xyz);
+  vec3 ci = normalize(ro - si.xyz);
+  vec3 lp = vec3( 2, 1, 3);
+  vec3 l = normalize( lp - si.xyz);
+  color += max(0.,dot( ci, n ));
+  color.r += max(0.,dot( l, n));
+
+  vec3 r = -ci - 2. * dot(-ci, n) * n;
+  vec4 pi = planeIntersect( si.xyz, r, plane );
+  if( pi.w >= 0. ) {
+    vec3 pColor = planeColor(pi);
+    color = pColor;
+  }
+  return color;
+}
+
 vec3 getPixelColor( vec2 fragCoord ) {
   vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
-  vec3 ro=vec3(0,1,3.9);
+  vec3 ro=vec3(0,0,3.9);
   vec3 rd = normalize(vec3(uv * 1.,-0.35));
   // vec3 rd = normalize(vec3(uv * 1.,-1));
-  // pR( rd.yz, -1.1 * (sin(u_time * 0.4) * 0.5 + 0.5) );
-  pR( rd.yz, -1.1 );
+  pR( rd.yz, -1.1 * (sin(u_time * 0.4) * 0.5 + 0.5) );
+  // pR( rd.yz, -1.3 + mouse.y);
   pR( rd.xy, u_time * 0.2 );
-  // pR( rd.yz, 0.1 );
+  // pR( rd.xy, 0.0 + 2. * mouse.x);
 
   vec3 color = vec3(0.);
-
   vec4 pi = iterateToPlane( ro, rd );
-  if( pi.w > -0. ) {
-    vec3 cp = normalize(ro - pi.xyz);
-    vec3 cp2 = plane.xyz;
-    pi.w = clamp(dot( cp, cp2 ), 0., 1.);
+  vec4 sip = sphIntersect( ro, normalize(rd), sphere2 );
+  vec4 si = sphIntersect( ro, normalize(rd), sphere );
 
-    color=planeColor( pi );
-    float r = 0.;//sin(u_time*2.) * 0.1;
-    vec3 lp = vec3( r + 1. * mCycle2.x, r + 1. * mCycle2.y, 1 ) - plane.xyz;
-    color += pow(getLight( ro, rd, lp), 30.);
+  if( si.w >= 0. || sip.w >= 0. ) {
+    if( sip.w > 0. ) color = sphereColor( sphere2, sip, ro );
+    if( si.w > 0. ) color = sphereColor( sphere, si, ro );
+  } else {
+    if( pi.w > -0. ) {
+      vec3 cp = normalize(ro - pi.xyz);
+      vec3 cp2 = plane.xyz;
+      pi.w = clamp(dot( cp, cp2 ), 0., 1.);
+
+      color=planeColor( pi );
+      float r = 0.;//sin(u_time*2.) * 0.1;
+      vec3 lp = vec3( r + 1. * mCycle2.x, r + 1. * mCycle2.y, 1 ) - plane.xyz;
+      color += pow(getLight( ro, rd, lp), 30.);
+    }
   }
+
 
   return color;
 }
