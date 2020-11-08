@@ -48,14 +48,15 @@ vec4 pl2=vec4(n(vec3(0,0,-1)),1.9);
 
 void cv(vec3 pos,inout vec3 vel) {
 	// return;
-	vec3 h=vec3(-0,0,-pl.w+2.)-pos;
-	h.xy += tc2;
-	vec3 acc=sin(n(h)*PI*0.1)*0.1 / dot(h,h) ;
+	vec3 acc=v3;
+	vec3 h=vec3(-0,0,-pl.w+1.7)-pos;
+	h.xy += 1.2*tc2;
+	acc+=sin(n(h)*PI*0.1)*0.1 / dot(h,h) ;
 
 	h=vec3(0,0,-pl.w+1.)-pos;
 	h.z += 0.61*tc1.x;
-	h.xy += (sin(ut*5.1)*0.001+0.01)*tc2;
-	acc += sin(n(h)*0.35) / dot(h,h) ;
+	h.xy += (sin(ut*5.1)*0.0005+0.01)*tc2;
+	acc += sin(n(h)*0.35)*2. / dot(h,h) ;
 	vel += acc;
 }
 
@@ -71,10 +72,29 @@ vec3 pal(float t) {
 	return vec3(0.5,0.0,0.5)+0.5*cos(6.2318*(t+vec3(0,0,0.67)));
 }
 
-float tex(vec2 uv,float mod) {
+float tex(vec2 uv) {
 	float r=l(f(uv)*2.-1.);
 	float w=l(fwidth(uv));
 	return mix(1.-r,0.25,min(w,1.));
+}
+
+float chex(vec2 uv) {
+	vec2 w = fwidth(uv) + 0.001;
+	vec2 i = 2.0*(abs(f((uv-0.5*w)*0.5)-0.5)-abs(f((uv+0.5*w)*0.5)-0.5))/w;
+	return 0.5 - 0.5*i.x*i.y;
+}
+
+vec2 p( in vec2 x )
+{
+    vec2 h = fract(x/2.0)-0.5;
+    return x*0.5 + h*(1.0-2.0*abs(h));
+}
+
+float checkers2(vec2 uv)
+{
+    vec2 w = fwidth(uv) + 0.001;
+    vec2 i = (p(uv+w)-2.0*p(uv)+p(uv-w))/(w*w); // analytical integral (triangle filter)
+    return 0.5 - 0.5*i.x*i.y;                   // xor pattern
 }
 
 vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,2);
@@ -83,7 +103,7 @@ vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,2);
 vec3 pC(vec4 pi, vec4 p) {
 	vec3 c=vec3(0);
 	if( pi.w < 0. ) return c;
-	c += tex(pi.xy*1.0,2.);
+	c += checkers2(pi.xy);
 	pi.w=dot(n(vec3(0,0,1)),n(vec3(pi.xy,1)));
 	c *= pal(f(-pi.w));
 	float sl = 1. / min(pow(sD(pi.xyz, n(s.xyz - pi.xyz), s), 2.),10.);
@@ -105,7 +125,7 @@ vec4 sSC(vec4 sp,vec4 si,vec3 ro) {
 	vec3 ci=n(ro-si.xyz);
 	vec3 lp=0. - (pl.xyz * pl.w);
 	vec3 l=n(lp-si.xyz);
-	c += max(0.,dot(l,n));
+	c += max(0.,dot(l,n)) * 0.5;
 	vec3 r=-ci-2.*dot(-ci,n)*n;
 	vec4 pi=pI(si.xyz,r,pl);
 	vec4 pi2=pI(si.xyz,r,pl2);
@@ -126,7 +146,7 @@ vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 	vec3 ci=n(ro-si.xyz);
 	vec3 lp=0. - (pl.xyz * pl.w);
 	vec3 l=n(lp-si.xyz);
-	sc += max(0.,dot(l,n));
+	sc += max(0.,dot(l,n)) * 0.5;
 	vec3 r=-ci-2.*dot(-ci,n)*n;
 	vec4 so = s;
 	if( sp.x == s.x ) so = s2;
