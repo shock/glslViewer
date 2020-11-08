@@ -42,17 +42,17 @@ vec4 sI(vec3 ro,vec3 rd,vec4 sph) {
 	return i;
 }
 
-vec4 pl=vec4(n(vec3(0, 0, 3)),2.9);
+vec4 pl=vec4(n(vec3(0, 0, 3)),3.9);
 // vec4 pl=vec4(n(vec3(tc3.x, tc3.y, 3)),2.9);
 vec4 pl2=vec4(n(vec3(0,0,-1)),1.9);
 
 void cv(vec3 pos,inout vec3 vel) {
 	// return;
-	vec3 h=vec3(-0,0,1)-pos;
+	vec3 h=vec3(-0,0,-pl.w+2.)-pos;
 	h.xy += tc2;
 	vec3 acc=sin(n(h)*PI*0.1)*0.1 / dot(h,h) ;
 
-	h=vec3(0,0,2.415-3.9)-pos;
+	h=vec3(0,0,-pl.w+1.)-pos;
 	h.z += 0.61*tc1.x;
 	h.xy += (sin(ut*5.1)*0.001+0.01)*tc2;
 	acc += sin(n(h)*0.35) / dot(h,h) ;
@@ -92,18 +92,6 @@ vec3 pC(vec4 pi, vec4 p) {
 	if( p == pl ) c += pow(dot(n(vec3(pi.xy,1)),pl.xyz),16.);
 	c *= pow(pi.w,0.5);
 	return pow(c,vec3(0.666));
-}
-
-float gL(vec3 ro,vec3 rd) {
-	vec4 pi=pI(ro,rd,pl);
-	vec3 lo=vec3(tc2,0)-pi.xyz;
-	vec3 co=ro-pi.xyz;
-	vec3 ha=(lo-co)*0.5;
-	float spec=dot(n(ha),n(co));
-	spec=pow(spec,30.);
-	spec=pow(spec,30.);
-	spec=pow(spec,30.);
-	return spec;
 }
 
 void pR(inout vec2 p,float a) {
@@ -159,6 +147,18 @@ vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 	}
 
 	return c;
+}
+
+float gL(vec3 ro,vec3 rd) {
+	vec4 pi=pI(ro,rd,pl);
+	vec3 lo=vec3(tc2,pl.w)-pi.xyz;
+	vec3 co=ro-pi.xyz;
+	vec3 ha=(lo-co)*0.5;
+	float spec=dot(n(ha),n(co));
+	spec=pow(spec,30.);
+	spec=pow(spec,30.);
+	spec=pow(spec,30.);
+	return spec;
 }
 
 vec3 gPC(vec2 fc) {
