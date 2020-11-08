@@ -3,7 +3,7 @@ uniform vec2 u_mouse;// Mouse screen pos
 uniform float u_time;// Mouse screen pos
 
 #define PI 3.14159
-#define PLANE_SIZE 20.
+#define PLANE_SIZE 200./0.
 
 vec2 mouse = u_mouse / u_resolution;
 float time = u_time * 0.2;
@@ -115,13 +115,10 @@ float checkers2(vec2 uv)
 float planes( vec2 uv ) {
   vec2 w = fwidth(uv) + 0.5;
   vec2 i = 2.0 * ( length( fract((uv-0.5)*0.5) - 0.5 ) - length(fract((uv+0.5)*0.5)-0.5) ) / fract(uv);
-  float r = length((fract(i*0.5) - 0.5)*2.9);
-  r = length(i);
+  float r = length(i);
   r = 1. - r;
   r = clamp(r, 0., 1.);
   r = mix( r, 0.28, min(length(fwidth(uv)),0.9));
-  // r = r * smoothstep(1.0,0.5,fwidth(r));
-  // if( r >= 1. ) r -= (r - 1.) * 0.2;
   return r;
 }
 
@@ -149,12 +146,14 @@ float tiles( vec2 uv ) {
   return r;
 }
 
-float dots( vec2 uv ) {
+float dots( vec2 uv, float mod ) {
   float r = length( fract(uv) * 2. - 1. );
-  r /= 1.4142;
+  // r = min(1., r);
+  // r /= 1.4142;
   float w = length(fwidth(uv));
-  r = mix( r, 0.5, min(w,1.));
   r = 1. - r;
+  // r = r * checkers2(uv);
+  r = mix( r, 0.25, min(w,1.));
   return r;
 }
 
@@ -172,14 +171,34 @@ float triFade( vec3 sig123, float t ) {
   return c;
 }
 
+float quadFade( vec4 sig1234, float t ) {
+  float t1 = 1.0 - 2.0 * abs( fract( t ) - 0.5 );
+  t1 = 2. * max( -0.0, t1 - 0.5 );
+  t1 = smoothstep(0., 1., t1);
+  float t2 = 1.0 - 2.0 * abs( fract( t - 0.25 ) - 0.5 );
+  t2 = 2. * max( -0.0, t2 - 0.5 );
+  t2 = smoothstep(0., 1., t2);
+  float t3 = 1.0 - 2.0 * abs( fract( t - 0.5 ) - 0.5 );
+  t3 = 2. * max( -0.0, t3 - 0.5 );
+  t3 = smoothstep(0., 1., t3);
+  float t4 = 1.0 - 2.0 * abs( fract( t - 0.75 ) - 0.5 );
+  t4 = 2. * max( -0.0, t4 - 0.5 );
+  t4 = smoothstep(0., 1., t4);
+  float c = t1*sig1234.x + t2*sig1234.y + t3*sig1234.z + t4*sig1234.w;
+  return c;
+}
+
 vec3 planeColor( vec4 pi ) {
   vec3 color = vec3(0.);
-  float c1 = dots( pi.xy * 1.0 );
+  float c1 = dots( pi.xy * 1.0, 2. );
   float c2 = grid( pi.xy * 1. );
-  float c3 = tiles( pi.xy * 1. );
-  float t = u_time * 0.1;
-  float c = triFade( vec3(c1,c2,c3), t);
+  float c3 = tiles( pi.xy * 2. );
+  float c4 = checkers2( pi.xy * 1. );
+  float t = u_time * 0.07;
+  // float c = triFade( vec3(c1,c2,c3), t);
+  float c = quadFade( vec4(c1,c2,c3,c4), t);
   color = vec3(c);
+  // color = vec3(c1 + c2 + c3) * 0.333333;
   pi.w = dot( normalize(vec3(0,0,1)), normalize(vec3(pi.xy,1.)));
   color *= colpal2( fract(1. - pi.w + 0.98) );
   color += pow(dot( normalize(plane.xyz-vec3(pi.xy, 0.0)), plane.xyz ), 16.);
@@ -224,6 +243,7 @@ vec3 sphereColor( vec4 sphere, vec4 si, vec3 ro ) {
   vec3 lp = vec3( 2, 1, 3);
   vec3 l = normalize( lp - si.xyz);
   color += max(0.,dot( ci, n ));
+  color = pow( color, vec3(1.2) );
   // color.r += max(0.,dot( l, n));
 
   vec3 r = -ci - 2. * dot(-ci, n) * n;
@@ -233,19 +253,20 @@ vec3 sphereColor( vec4 sphere, vec4 si, vec3 ro ) {
     vec3 pColor = planeColor(pi);
     reflCol = pColor;
   }
-  color = mix( color, reflCol, 0.4);
+  color = mix( color, reflCol, 0.6);
   return color;
 }
 
 vec3 getPixelColor( vec2 fragCoord ) {
   vec2 uv=(fragCoord-.5*u_resolution.xy)/u_resolution.y;
   vec3 ro=vec3(0,0,3.9);
-  vec3 rd = normalize(vec3(uv * 1.,-0.35));
-  // vec3 rd = normalize(vec3(uv * 1.,-1));
+  // vec3 rd = normalize(vec3(uv * 1.,-0.35));
+  vec3 rd = normalize(vec3(uv * 2.,-1.0));
   // pR( rd.yz, -0.2 -1.6 * (sin(u_time * 0.4) * 0.5 + 0.5) );
-  pR( rd.yz, -1.8 + mouse.y);
-  pR( rd.xy, u_time * 0.35 );
-  pR( rd.xy, 0.0 + 2. * mouse.x);
+  pR( rd.yz, -PI * mouse.y);
+  // pR( rd.xy, u_time * 0.35 );
+  pR( rd.xy, PI * mouse.x);
+  // pR( rd.xz, time );
 
   vec3 color = bgColor( rd );
   vec4 pi = iterateToPlane( ro, rd );
