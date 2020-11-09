@@ -2,7 +2,7 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
 
-#define PI 3.14159
+#define PI 3.14159265
 #define ut u_time
 // #define ut u_mouse.x*5.
 #define n(x) normalize(x)
@@ -11,12 +11,35 @@ uniform float u_time;
 #define v3 vec3(0)
 #define inf 1./0.
 #define sb 0.5
+#define cR 1.
+#define k (0.5/PI)
 
 vec2 m=u_mouse / u_resolution * vec2(1,-1);
 float t=ut*0.2;
 vec2 tc1=vec2(cos(t*PI*0.5),sin(t*PI*0.5));
 vec2 tc2=vec2(cos(t*PI),sin(t*PI));
 vec2 tc3=vec2(cos(ut*PI*0.125),sin(ut*PI*0.125));
+
+vec4 cl = vec4(5,5,0,cR);
+
+float cD(vec3 ro,vec3 rd) {
+	ro -= cl.xyz;
+	vec3 ca = vec3(0,0,1);
+	float card = dot(ca,rd);
+	float caoc = dot(ca,ro);
+	float a = 1.0 - card*card;
+	float b = dot(ro,rd) - caoc*card;
+	float c = dot(ro,ro) - caoc*caoc - cl.w*cl.w;
+	float h = b*b - a*c;
+	if( h<0.0 ) return -1.0; //no intersection
+	h = sqrt(h);
+	return (-b-h)/a;
+}
+
+vec4 cI(vec3 ro,vec3 rd) {
+	float d=cD(ro,rd);
+	return vec4(ro+rd*d,d);
+}
 
 float pD(vec3 ro,vec3 rd,vec4 p) {
 	return -(dot(ro,p.xyz)+p.w)/dot(rd,p.xyz);
@@ -48,7 +71,7 @@ vec4 pl=vec4(n(vec3(0, 0, 3)),3.9);
 vec4 pl2=vec4(n(vec3(0,0,-1)),1.9);
 
 void cv(vec3 pos,inout vec3 vel) {
-	// return;
+	return;
 	vec3 acc=v3;
 	vec3 h=vec3(-0,0,-pl.w+1.7)-pos;
 	h.xy += 1.2*tc2;
@@ -102,6 +125,16 @@ float checkers2(vec2 uv)
 
 vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,2);
 vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,2);
+
+vec3 cC(vec4 ci) {
+	vec3 c=vec3(0.1);
+	if( ci.w < 0. ) return c;
+	float sl = 1. / min(pow(sD(ci.xyz, n(s.xyz - ci.xyz), s), 2.),1000.);
+	float sl2 = 1. / min(pow(sD(ci.xyz, n(s2.xyz - ci.xyz), s2), 2.),1000.);
+	c *= (sl + sl2) * 1.;
+	c *= pow(ci.w,0.5);
+	return pow(c,vec3(0.666));
+}
 
 vec3 pC(vec4 pi, vec4 p) {
 	vec3 c=vec3(0);
@@ -186,7 +219,7 @@ float gL(vec3 ro,vec3 rd) {
 
 vec3 gPC(vec2 fc) {
 	vec2 uv=(fc-.5*u_resolution.xy)/u_resolution.y;
-	vec3 ro=vec3(8,0,0);
+	vec3 ro=vec3(0,0,0);
 	vec3 rd=n(vec3(uv*2.,-1.0));
 	// rd.z *= 1.61;
 	pR(rd.yz,PI*m.y);
@@ -198,14 +231,12 @@ vec3 gPC(vec2 fc) {
 	vec4 pi2 = pI( ro, n(rd), pl2 );
 	vec4 sip=sI(ro,n(rd),s2);
 	vec4 si=sI(ro,n(rd),s);
+	vec4 ci=cI(ro,n(rd));
 	float md = inf;
-	if(sip.w > 0. && sip.w < md ) { md = sip.w; c=sC(s2,sip,ro); }
+	// if(sip.w > 0. && sip.w < md ) { md = sip.w; c=sC(s2,sip,ro); }
 	if(si.w > 0. && si.w < md ) { md = si.w; c=sC(s,si,ro); }
-	if(pi2.w > 0. && pi2.w < md ) {
-		md = pi2.w;
-		c+=pC(pi2,pl2);
-		// c += pow(gL(ro,rd),30.);
-	}
+	if(ci.w > 0. && ci.w < md ) { md = ci.w; c=cC(ci); }
+	if(pi2.w > 0. && pi2.w < md ) { md = pi2.w; c+=pC(pi2,pl2); }
 	if(pi.w > 0. && pi.w < md ) {
 		md = pi.w;
 		c+=pC(pi,pl);
