@@ -79,6 +79,7 @@ vec3 pal(float t) {
 }
 
 float tex(vec2 uv) {
+	uv.x += t; uv.y += tc1.y;
 	float r=l(f(uv)*2.-1.);
 	float w=l(fwidth(uv));
 	return mix(1.-r,0.25,min(w,1.));
