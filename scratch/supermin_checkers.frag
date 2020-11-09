@@ -11,25 +11,27 @@ uniform float u_time;
 #define v3 vec3(0)
 #define inf 1./0.
 #define sb 0.5
-#define cR 1.
 #define k (0.5/PI)
+#define rv(x) (vec2(cos(x),sin(x)))
 
 vec2 m=u_mouse / u_resolution * vec2(1,-1);
 float t=ut*0.2;
-vec2 tc1=vec2(cos(t*PI*0.5),sin(t*PI*0.5));
-vec2 tc2=vec2(cos(t*PI),sin(t*PI));
-vec2 tc3=vec2(cos(ut*PI*0.125),sin(ut*PI*0.125));
+vec2 tc1=rv(t*PI*0.5);
+vec2 tc2=rv(t*PI);
+vec2 tc3=rv(ut*PI*0.125);
 
-vec4 cl = vec4(5,5,0,cR);
+float cR=smoothstep(0.,1.,f(ut))+0.01;
+// vec4 cl = vec4(-5.*tc3.x,-5.*tc3.y,0,cR);
+vec4 cl = vec4(v3,cR*10.);
 
 float cD(vec3 ro,vec3 rd) {
 	ro -= cl.xyz;
 	vec3 ca = vec3(0,0,1);
-	float card = dot(ca,rd);
-	float caoc = dot(ca,ro);
-	float a = 1.0 - card*card;
-	float b = dot(ro,rd) - caoc*card;
-	float c = dot(ro,ro) - caoc*caoc - cl.w*cl.w;
+	float cr = dot(ca,rd);
+	float co = dot(ca,ro);
+	float a = 1.0 - cr*cr;
+	float b = dot(ro,rd) - co*cr;
+	float c = dot(ro,ro) - co*co - cl.w*cl.w;
 	float h = b*b - a*c;
 	if( h<0.0 ) return -1.0; //no intersection
 	h = sqrt(h);
@@ -102,7 +104,6 @@ vec3 pal(float t) {
 }
 
 float tex(vec2 uv) {
-	uv.x += t; uv.y += tc1.y;
 	float r=l(f(uv)*2.-1.);
 	float w=l(fwidth(uv));
 	return mix(1.-r,0.25,min(w,1.));
@@ -126,24 +127,29 @@ float checkers2(vec2 uv)
 vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,2);
 vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,2);
 
-vec3 cC(vec4 ci) {
-	vec3 c=vec3(0.1);
+vec3 cC(vec4 ci, vec3 ro) {
+	vec3 c=v3;
 	if( ci.w < 0. ) return c;
-	float sl = 1. / min(pow(sD(ci.xyz, n(s.xyz - ci.xyz), s), 2.),1000.);
-	float sl2 = 1. / min(pow(sD(ci.xyz, n(s2.xyz - ci.xyz), s2), 2.),1000.);
-	c *= (sl + sl2) * 1.;
-	c *= pow(ci.w,0.5);
+	vec3 n=n(vec3(ci.xy-cl.xy,0));
+	vec3 oc=n(ro-ci.xyz);
+	c += dot(oc,n);
+	// float sl = 1. / min(pow(sD(ci.xyz, n(s.xyz - ci.xyz), s), 2.),1000.);
+	// float sl2 = 1. / min(pow(sD(ci.xyz, n(s2.xyz - ci.xyz), s2), 2.),1000.);
+	// c *= (sl + sl2) * 1.;
+	// c *= 1./pow(ci.w,2.);
 	return pow(c,vec3(0.666));
 }
 
 vec3 pC(vec4 pi, vec4 p) {
 	vec3 c=vec3(0);
 	if( pi.w < 0. ) return c;
-	c += tex(pi.xy);
+	// uv.x += t; uv.y += tc1.y;
+	c += tex(pi.xy+vec2(t,tc1.y)*vec2(sign(pi.z)));
 	pi.w=dot(n(vec3(0,0,1)),n(vec3(pi.xy,1)));
 	c *= pal(f(-pi.w));
 	float sl = 1. / min(pow(sD(pi.xyz, n(s.xyz - pi.xyz), s), 2.),1000.);
 	float sl2 = 1. / min(pow(sD(pi.xyz, n(s2.xyz - pi.xyz), s2), 2.),1000.);
+	// float cl2 = 1. / min(pow(cD(pi.xyz, n(vec3(cl.xy - pi.xy,0))), 2.),100.);
 	c *= (sl + sl2) * 1.;
 	if( p == pl ) c += pow(dot(n(vec3(pi.xy,1)),pl.xyz),16.);
 	c *= pow(pi.w,0.5);
@@ -205,21 +211,22 @@ vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 	return c;
 }
 
-float gL(vec3 ro,vec3 rd) {
-	vec4 pi=pI(ro,rd,pl);
-	vec3 lo=vec3(tc2,pl.w)-pi.xyz;
-	vec3 co=ro-pi.xyz;
+float gL(vec3 ro,vec3 rd, vec4 p) {
+	vec4 pi=pI(ro,rd,p);
+	if( pi.w < 0. ) return -1.;
+	vec3 lo=vec3(tc2*10.,p.w)-pi.xyz;
+	vec3 co=-ro-pi.xyz;
 	vec3 ha=(lo-co)*0.5;
 	float spec=dot(n(ha),n(co));
 	spec=pow(spec,30.);
 	spec=pow(spec,30.);
-	spec=pow(spec,30.);
+	// spec=pow(spec,30.);
 	return spec;
 }
 
 vec3 gPC(vec2 fc) {
 	vec2 uv=(fc-.5*u_resolution.xy)/u_resolution.y;
-	vec3 ro=vec3(0,0,0);
+	vec3 ro=vec3(0,8,0);
 	vec3 rd=n(vec3(uv*2.,-1.0));
 	// rd.z *= 1.61;
 	pR(rd.yz,PI*m.y);
@@ -233,15 +240,11 @@ vec3 gPC(vec2 fc) {
 	vec4 si=sI(ro,n(rd),s);
 	vec4 ci=cI(ro,n(rd));
 	float md = inf;
-	// if(sip.w > 0. && sip.w < md ) { md = sip.w; c=sC(s2,sip,ro); }
+	if(sip.w > 0. && sip.w < md ) { md = sip.w; c=sC(s2,sip,ro); }
 	if(si.w > 0. && si.w < md ) { md = si.w; c=sC(s,si,ro); }
-	if(ci.w > 0. && ci.w < md ) { md = ci.w; c=cC(ci); }
 	if(pi2.w > 0. && pi2.w < md ) { md = pi2.w; c+=pC(pi2,pl2); }
-	if(pi.w > 0. && pi.w < md ) {
-		md = pi.w;
-		c+=pC(pi,pl);
-		c += gL(ro,rd);
-	}
+	if(pi.w > 0. && pi.w < md ) { md = pi.w; c+=pC(pi,pl); c += gL(ro,n(rd),pl); }
+	// if(ci.w > 0. && ci.w < md ) { md = ci.w; c=cC(ci,ro); }
 	return c;
 }
 
