@@ -4,6 +4,7 @@ uniform float u_time;
 
 #define PI 3.14159
 #define ut u_time
+// #define ut u_mouse.x*5.
 #define n(x) normalize(x)
 #define l(x) length(x)
 #define f(x) fract(x)
@@ -53,6 +54,11 @@ void cv(vec3 pos,inout vec3 vel) {
 	h.xy += 1.2*tc2;
 	acc+=sin(n(h)*PI*0.1)*0.1 / dot(h,h) ;
 
+	h=vec3(0,0,3)-pos;
+	float tt = sin(t)*0.5+0.5;
+	h.z += 3.*tt;
+	acc += n(h) * 8. * tt/ dot(h,h) ;
+
 	h=vec3(0,0,-pl.w+1.)-pos;
 	h.z += 0.61*tc1.x;
 	h.xy += (sin(ut*5.1)*0.0005+0.01)*tc2;
@@ -84,17 +90,13 @@ float chex(vec2 uv) {
 	return 0.5 - 0.5*i.x*i.y;
 }
 
-vec2 p( in vec2 x )
-{
-    vec2 h = fract(x/2.0)-0.5;
-    return x*0.5 + h*(1.0-2.0*abs(h));
-}
+vec2 p( in vec2 x ) { vec2 h = fract(x/2.0)-0.5; return x*0.5 + h*(1.0-2.0*abs(h)); }
 
 float checkers2(vec2 uv)
 {
-    vec2 w = fwidth(uv) + 0.001;
-    vec2 i = (p(uv+w)-2.0*p(uv)+p(uv-w))/(w*w); // analytical integral (triangle filter)
-    return 0.5 - 0.5*i.x*i.y;                   // xor pattern
+	vec2 w = fwidth(uv) + 0.001;
+	vec2 i = (p(uv+w)-2.0*p(uv)+p(uv-w))/(w*w);
+	return 0.5 - 0.5*i.x*i.y;
 }
 
 vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,2);
@@ -103,12 +105,12 @@ vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,2);
 vec3 pC(vec4 pi, vec4 p) {
 	vec3 c=vec3(0);
 	if( pi.w < 0. ) return c;
-	c += checkers2(pi.xy);
+	c += tex(pi.xy);
 	pi.w=dot(n(vec3(0,0,1)),n(vec3(pi.xy,1)));
 	c *= pal(f(-pi.w));
-	float sl = 1. / min(pow(sD(pi.xyz, n(s.xyz - pi.xyz), s), 2.),10.);
-	float sl2 = 1. / min(pow(sD(pi.xyz, n(s2.xyz - pi.xyz), s2), 2.),10.);
-	c *= sl + sl2;
+	float sl = 1. / min(pow(sD(pi.xyz, n(s.xyz - pi.xyz), s), 2.),1000.);
+	float sl2 = 1. / min(pow(sD(pi.xyz, n(s2.xyz - pi.xyz), s2), 2.),1000.);
+	c *= (sl + sl2) * 1.;
 	if( p == pl ) c += pow(dot(n(vec3(pi.xy,1)),pl.xyz),16.);
 	c *= pow(pi.w,0.5);
 	return pow(c,vec3(0.666));
@@ -183,11 +185,12 @@ float gL(vec3 ro,vec3 rd) {
 
 vec3 gPC(vec2 fc) {
 	vec2 uv=(fc-.5*u_resolution.xy)/u_resolution.y;
-	vec3 ro=vec3(0,0,0);
+	vec3 ro=vec3(8,0,0);
 	vec3 rd=n(vec3(uv*2.,-1.0));
 	// rd.z *= 1.61;
 	pR(rd.yz,PI*m.y);
-	pR(rd.xy,2.*PI*m.x + t*0.5);
+	// pR(rd.xy,2.*PI*m.x + t*0.5);
+	pR(rd.xy,2.*PI*m.x);
 
 	vec3 c=v3;
 	vec4 pi=i2p(ro,rd);
