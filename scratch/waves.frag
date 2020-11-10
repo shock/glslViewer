@@ -2,10 +2,12 @@ uniform vec2 u_resolution;
 uniform float u_time;
 
 #define ut u_time
-#define l(x) length(x)
 #define kPI 3.14159265
 #define k2PI 2.*kPI
 #define f(x) fract(x)
+#define l(x) length(x)
+#define c(x,y,z) clamp(x,y,z)
+#define p(x,y) pow(x,y)
 #define r(x) f(sin(x)*100000.0)
 
 vec3 pal(float t) {
@@ -28,24 +30,35 @@ vec3 ef1( vec2 fc ) {
   return c;
 }
 
-float cmpd( float t, float o ) {
-  t = 1.0 - 8.0 * abs( fract( t - o ) - 0.25 );
-  // t = pow(t,2);
-  // t = 2. * max( -0.0, t - 0.5 );
-  return smoothstep(0., 1., t);
-}
+#define kTrans 0.001 // smaller is faster transition
+#define c4(t) p(c(1.-8.*abs(f(t)-0.875),0.,1.),kTrans)
 
-vec4 quadFade( mat4 sig1234, float t ) {
+vec4 quadFade( mat4 s, float t ) {
   float t1, t2, t3, t4;
-  t1 = cmpd(t,0.);
-  t2 = cmpd(t,0.25);
-  t3 = cmpd(t,0.5);
-  t4 = cmpd(t,0.75);
-  return t1*sig1234[0] + t2*sig1234[1] + t3*sig1234[2] + t4*sig1234[3];
+  t1 = c4(t); t2 = c4(t-0.25); t3 = c4(t-0.5); t4 = c4(t-0.75);
+  return t1*s[0] + t2*s[1] + t3*s[2] + t4*s[3];
 }
 
-vec4 stage( mat4 in1234, float t ) {
-  return quadFade( in1234, t );
+vec4 stage( mat4 s, float t ) {
+  return quadFade( s, t );
+}
+
+#define s1 0.5
+#define s2 1.
+#define s3 1.
+#define s4 1.
+#define nSteps 4.
+#define kPeriod s1+s2+s3+s4
+#define ts(c,ss,s,u,r,t) if( u < ss+c ) { t = (u-c)/ss; r = t/nSteps + (s-1.)/nSteps; u = kPeriod; }; c+=ss;s+=1.;
+
+vec2 seq( float u ) {
+  float c = 0., s=0., r=0., t=0.;
+  u = mod(u, kPeriod);
+  ts(c,s1,s,u,r,t);
+  ts(c,s2,s,u,r,t);
+  ts(c,s3,s,u,r,t);
+  ts(c,s4,s,u,r,t);
+  return vec2(t,r);
 }
 
 vec3 gPC( vec2 fc ) {
@@ -55,7 +68,7 @@ vec3 gPC( vec2 fc ) {
   efs[1].xyz = pal(uv.x*uv.y);
   efs[2].xyz = pal(uv.x-uv.y);
   efs[3].xyz = pal(uv.x+uv.y);
-  return stage( efs, f(ut*0.125) ).xyz;
+  return stage( efs, seq(ut).y ).xyz;
 }
 
 void main() {
