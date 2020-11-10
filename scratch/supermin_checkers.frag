@@ -46,6 +46,7 @@ vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,1.9);
 vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,1.9);
 
 void cv(inout vec3 pos,inout vec3 vel) {
+	return;
 	vec3 h=s.xyz-pos,h2=s2.xyz-pos;
 	vel+=n(h)/dot(h,h)+n(h2)/dot(h2,h2); pos+=vel;
 }
@@ -116,8 +117,7 @@ vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 	return c;
 }
 
-vec3 gPC(vec2 fc) {
-	vec2 uv=(fc-.5*u_resolution.xy)/u_resolution.y;
+vec3 gPC(vec2 uv) {
 	vec3 ro=vec3(0,7.2,0), rd=n(vec3(uv*2.,-1.0));
 	vec3 c=v3;
 	pR(rd.yz,PI*(m.y-0.5));
@@ -133,4 +133,30 @@ vec3 gPC(vec2 fc) {
 	return c;
 }
 
-void main() { gl_FragColor=vec4(gPC(gl_FragCoord.xy),1.); }
+vec3 hash3( float n ) { return fract(sin(vec3(n,n+1.0,n+2.0))*43758.5453123); }
+
+void main() {
+	vec2 uv=(gl_FragCoord.xy-.5*u_resolution.xy)/u_resolution.y;
+	vec2 q = gl_FragCoord.xy / u_resolution.xy;
+	vec3 col = gPC(uv.xy);
+	//-----------------------------------------------------
+  // postprocess
+  //-----------------------------------------------------
+
+  // gama
+  col = pow( col, vec3(0.44,0.5,0.55) );
+
+  // contrast
+  col = mix( col, smoothstep( 0.0, 1.0, col ), 0.5 );
+
+  // saturate
+  col = mix( col, vec3(dot(col,vec3(0.333))), -0.2 );
+
+  // vigneting
+  col *= 0.2 + 0.8*pow(16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y),0.2);
+
+  // dithering
+  col += (1.0/255.0)*hash3(q.x+13.3214*q.y);
+
+	gl_FragColor=vec4(col,1.);
+}
