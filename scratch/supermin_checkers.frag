@@ -46,7 +46,6 @@ vec4 s=vec4(5.5*tc3.x,5.5*-tc3.y,0.+4.*tc2.x,1.9);
 vec4 s2=vec4(-s.x,-s.y,0.-4.*tc2.x,1.9);
 
 void cv(inout vec3 pos,inout vec3 vel) {
-	return;
 	vec3 h=s.xyz-pos,h2=s2.xyz-pos;
 	vel+=n(h)/dot(h,h)+n(h2)/dot(h2,h2); pos+=vel;
 }
@@ -77,7 +76,7 @@ vec3 pC(vec4 pi, vec4 p) {
 	float sl2=1./min(pow(sD(pi.xyz,n(s2.xyz-pi.xyz),s2),2.),10.);
 	c *= (sl+sl2)*1.;
 	if(p==pl) c+=pow(dot(n(vec3(pi.xy,1)),pl.xyz),16.);
-	c *= pow(pi.w,0.5);
+	// c *= pow(pi.w,0.5);
 	return pow(c,vec3(0.666));
 }
 
@@ -130,6 +129,8 @@ vec3 gPC(vec2 uv) {
 	if(si.w>0. && si.w<md) {md=si.w; c=sC(s,si,ro);}
 	if(pi2.w>0. && pi2.w<md) {md=pi2.w; c+=pC(pi2,pl2);}
 	if(pi.w>0. && pi.w<md) {md=pi.w; c+=pC(pi,pl);}
+	c *= exp( -0.05*md );
+
 	return c;
 }
 
