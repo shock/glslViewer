@@ -86,11 +86,11 @@ void pR(inout vec2 p,float a) {
 
 vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 	vec3 sc=v3, c, c2;
-	vec3 n=n(si.xyz-sp.xyz),ci=n(ro-si.xyz);
+	vec3 n=n(si.xyz-sp.xyz),ci=n(si.xyz-ro);
 	vec3 lp=0.-(pl.xyz*pl.w),l=n(lp-si.xyz);
 	sc += max(0.,dot(l,n)) * 0.5;
 
-	vec3 r=-ci-2.*dot(-ci,n)*n;
+	vec3 r=reflect(ci,n);
 	vec4 pi=pI(si.xyz,r,pl), pi2=pI(si.xyz,r,pl2);
 	c = mix(sc,pC(pi,pl),sb);
 	c2 = mix(sc,pC(pi2,pl2),sb);
@@ -103,10 +103,10 @@ vec3 sC(vec4 sp,vec4 si,vec3 ro) {
 
 	if( si.w > 0. && si.w < md ) {
 		vec3 osc=v3, osc2 = v3;
-		n=n(si.xyz-sp.xyz),ci=n(ro-si.xyz);
+		n=n(si.xyz-sp.xyz),ci=n(si.xyz-ro);
 		lp=-(pl.xyz*pl.w),l=n(lp-si.xyz);
 		osc += max(0.,dot(l,n)) * 0.5;
-		r=-ci-2.*dot(-ci,n)*n;
+		r=reflect(ci,n);
 		pi=pI(si.xyz,r,pl),pi2=pI(si.xyz,r,pl2);
 		osc = mix(osc,pC(pi,pl),sb);
 		osc2 = mix(osc,pC(pi2,pl2),sb);
