@@ -35,7 +35,8 @@ float pD(vec3 ro,vec3 rd,vec4 p) {
 
 vec4 pI(vec3 ro,vec3 rd,vec4 p) {
 	float d=pD(ro,rd,p);
-	return vec4(ro+rd*d,d);
+  vec3 i = ro+rd*d;
+	return vec4(i,d);
 }
 
 vec3 pN(vec4 p) {
@@ -56,8 +57,8 @@ vec4 sI(vec3 ro,vec3 rd,vec4 sph) {
 	return i;
 }
 
-vec3 sN( vec4 i, vec4 s ) {
-  return n(i.xyz - s.xyz);
+vec3 sN( vec3 i, vec4 s ) {
+  return n(i - s.xyz);
 }
 
 float sSS( vec3 ro, vec3 rd, vec4 sph )
@@ -93,19 +94,6 @@ float schex(vec2 uv) {
   return 0.5*i.x*i.y;
 }
 
-// --- analytically triangle-filtered checkerboard ---
-
-vec3 pri( in vec3 x ) {
-    vec3 h = fract(x/2.0)-0.5;
-    return x*0.5 + h*(1.0-2.0*abs(h));
-}
-
-float checkersTextureGradTri( in vec3 p ) {
-  vec3 w = fwidth(p) + 0.001;   // filter kernel
-  vec3 i = (pri(p+w)-2.0*pri(p)+pri(p-w))/(w*w); // analytical integral (box filter)
-  return 0.5 - 0.5*i.x*i.y*i.z;                  // xor pattern
-}
-
 // --- analytically box-filtered checkerboard ---
 
 vec3 tri( in vec3 x )
@@ -130,18 +118,31 @@ float dots(vec2 uv) {
 	return mix(1.-l(f(uv)*2.-1.),0.25,min(l(fwidth(uv)),1.));
 }
 
-#define sharpness 2.
+float granite(vec2 uv) {
+  uv = floor(uv*90.)/90.;
+  vec2 w2 = fwidth(uv);
+  float w = max(w2.x, w2.y) * 16.;
+  // w = w * w;
 
-float sphTex( in vec3 pos, in vec3 nor )
+  float g = random(uv*41.126);
+  // g = g * g;
+  g = mix(g,0.39,clamp(w,0.,1.));
+  return g;
+}
+
+#define sharpness 64.
+
+float sphTex( vec3 pos, vec3 nor, vec4 s )
 {
   // return checkersTextureGradBox(pos);
+  pos = (pos - s.xyz) * 3.;
+  // nor = n(pos);
   vec3 weights = abs(nor);
   weights = pow(weights, vec3(sharpness) );
   weights = weights / (weights.x + weights.y + weights.z);
-  float f = dots(pos.xy) * weights.z;
-  float s = dots(pos.yz) * weights.x;
-  float t = dots(pos.xz) * weights.y;
-  return f+s+t;
+  return granite(pos.xy) * weights.z +
+    granite(pos.yz+0.1) * weights.x +
+    granite(pos.xz-0.1) * weights.y;
 }
 
 vec3 pC( vec4 i, vec4 p, vec3 o ) {
@@ -150,20 +151,20 @@ vec3 pC( vec4 i, vec4 p, vec3 o ) {
 }
 
 vec3 sC( vec4 i, vec4 s, vec3 o ) {
-  vec3 n = sN(i,s);
-  return vec3(pow(sphTex(i.xyz*3.,n)*0.4+0.5,1.));
+  vec3 n = sN(i.xyz,s);
+  return vec3(pow(sphTex(i.xyz,n,s)*0.4+0.1,1.));
   return vec3(checkersTextureGradBox(i.xyz*2.));
 }
 
 vec4 p = vec4(n(vec3(0,1,0)),1);
-vec4 s = vec4(0,m.y,0,1);
-vec3 lightSource = vec3(50,10,50);
+vec4 s = vec4(0,m.y*3.,0,1);
+vec3 lightSource = vec3(-10,10,50);
 
 float ai( float x, float m, float n ) {
   float t = x/m; if( x>m ) return x; return (2.0*n - m*t + 2.0*m - 3.0*n)*t*t + n;
 }
 
-struct RD {
+struct RI {
   vec3 pos;
   float d;
   vec3 ro;
@@ -212,7 +213,7 @@ vec3 cfr( vec3 ro, vec3 rd, vec3 col ) {
   vec4 si = sI(ro, rd, s);
   if( si.w > 0. && si.w < md ) {
     col = sC(si, s, ro); md = si.w;
-    n = sN(si, s);
+    n = sN(si.xyz, s);
     i = si;
   }
   if( i.w > 0. ) {
