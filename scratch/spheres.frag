@@ -58,7 +58,9 @@ float sD(vec3 ro,vec3 rd,vec4 sph) {
 
 vec2 polarCoords( vec3 pos ) {
   pos = n(pos);
-  return vec2( 0.5 - atan(pos.x,pos.z) * k2PIi, 0.5 - asin(pos.y) * kPIi );
+  float theta = 0.5 - atan(pos.x,pos.y) * k2PIi;
+  float alpha = 0.5 - asin(pos.z) * kPIi;
+  return vec2( theta, alpha );
 }
 
 vec4 sI(vec3 ro,vec3 rd,vec4 sph) {
@@ -133,10 +135,7 @@ float granite(vec2 uv) {
   uv = floor(uv*90.)/90.;
   vec2 w2 = fwidth(uv);
   float w = max(w2.x, w2.y) * 16.;
-  // w = w * w;
-
   float g = random(uv*41.126);
-  // g = g * g;
   g = mix(g,0.39,clamp(w,0.,1.));
   return g;
 }
@@ -145,11 +144,11 @@ float granite(vec2 uv) {
 
 float sphTex( vec3 pos, vec3 nor, vec4 s )
 {
-  // return checkersTextureGradBox(pos);
   pos = (pos - s.xyz) * 3.;
   pR(pos.xz,ut*0.25);
+  // return checkersTextureGradBox(pos);
   vec2 uv = polarCoords( pos );
-  float c = chex( uv * 32.* vec2(2,1) );
+  float c = chex( uv * 32.* vec2(1,1) );
   return c;
   vec3 weights = abs(nor);
   weights = pow(weights, vec3(sharpness) );
@@ -177,15 +176,15 @@ struct RI {
   float spec;
 };
 
-vec3 pC( RI ri, vec4 p) {
-  vec3 c = vec3(chex(ri.pos.xz*2.));
+vec3 pC( vec3 pos, vec4 p) {
+  vec3 c = vec3(chex(pos.xz*2.));
   return c;
 }
 
-vec3 sC( RI ri, vec4 s ) {
-  vec3 n = sN(ri.pos.xyz,s);
-  return vec3(sphTex(ri.pos.xyz,n,s));
-  return vec3(checkersTextureGradBox(ri.pos.xyz*2.));
+vec3 sC( vec3 pos, vec4 s ) {
+  vec3 n = sN(pos.xyz,s);
+  return vec3(sphTex(pos.xyz,n,s));
+  return vec3(checkersTextureGradBox(pos.xyz*2.));
 }
 
 vec3 shade( RI ri ) {
@@ -217,9 +216,10 @@ float light( RI ri ) {
 #define SPHERE 1
 #define GROUND 2
 
-RI mapRay( RI ri ) {
+void mapRay( inout RI ri ) {
   vec4 pi = pI(ri.ro, ri.rd, p);
   vec3 n;
+  ri.mid = SKY;
   if( pi.w > 0. && pi.w < ri.d ) {
     ri.nor = pN(p);
     ri.pos = pi.xyz;
@@ -233,19 +233,74 @@ RI mapRay( RI ri ) {
     ri.mid = SPHERE;
     ri.d = si.w;
   }
-  return ri;
 }
 
-vec3 getRayColor( RI ri, vec3 col ) {
-  ri = mapRay( ri );
-  if( ri.mid == SPHERE ) col = sC(ri, s);
-  if( ri.mid == GROUND ) col = pC(ri, p);
-  if( ri.d > 0. ) {
-    col *= shade( ri );
-    col *= exp( -0.05*ri.d );
+#define inf 1e20
+
+vec3 sphReflection( RI ri ) {
+  vec3 sl = n(lightSource - s.xyz);
+  vec3 sg = n(ri.ro - s.xyz);
+  vec3 hw = n(0.5 * (sl+sg));
+  vec3 col;
+
+  return col;
+}
+
+vec3 sky( RI ri ) {
+  // return vec3(0.2,0.2,0.2)*clamp(1.-ri.rd.y,0.0,1.0);
+  return vec3(0.03,0.04,0.2)*clamp(1.-ri.rd.y,0.0,1.0);
+}
+
+void sphColor( RI ri, inout vec3 col ) {
+  RI sec;
+  col = sC(ri.pos, s);
+  col *= shade( ri );
+  col *= exp( -0.05*ri.d );
+  sec.rd = reflect( ri.rd, ri.nor );
+  sec.ro = ri.pos + 0.01 * sec.rd;
+  sec.d = inf;
+  mapRay( sec );
+  if( sec.mid == GROUND ) {
+    vec3 sc = pC(sec.pos, p);
+    sc *= shade( sec );
+    sc *= exp( -0.05*ri.d );
+    col += sc;
   }
-  if( l(lightSource-ri.ro) < ri.d )
-    col += light( ri );
+  col *= shade( ri );
+  col *= exp( -0.05*ri.d );
+  if( sec.mid == SKY ) {
+    col += sky(sec);
+  }
+}
+
+vec3 getRayColor( RI pri, inout vec3 col ) {
+  mapRay( pri );
+  RI sec;
+  if( pri.mid == GROUND ) {
+    col = pC(pri.pos, p);
+    sec.rd = reflect( pri.rd, pri.nor );
+    sec.ro = pri.pos + 0.01 * sec.rd;
+    sec.d = inf;
+    mapRay( sec );
+    if( sec.mid == SPHERE ) {
+      vec3 sc;
+      sphColor( sec, sc );
+      col += sc;
+    }
+    col *= shade( pri );
+    col *= exp( -0.05*pri.d );
+    if( sec.mid == SKY ) {
+      col += sky(sec)*0.1;
+    }
+  }
+  if( pri.mid == SKY ) {
+    col = sky(pri);
+  }
+  if( pri.mid == SPHERE ) {
+    sphColor(pri, col);
+  }
+  if( l(lightSource-pri.ro) < pri.d )
+    col += light( pri );
   return col;
 }
 
@@ -267,7 +322,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   float an = 0.3*time - 7.0*m.x - 3.5;
 
   float le = 2.5;
-  float d = 1.;
+  float d = 10.;
   vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+m.y*d),m.y*10.,cos(m.x*k2PI*2.)*4.*(1.+m.y*d));
   vec3 ta = cen;
   vec3 ww = normalize( ta - ro );
@@ -277,10 +332,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
   float px = 1.0*(2.0/iResolution.y)*(1.0/le);
 
-  vec3 col = vec3(0.03,0.04,0.2)*clamp(1.-rd.y,0.0,1.0);
+  vec3 col;
 
   RI ri;
-  ri.ro = ro; ri.rd = rd; ri.mid = SKY; ri.d = 1e20;
+  ri.ro = ro; ri.rd = rd; ri.mid = SKY; ri.d = inf;
   col = getRayColor( ri, col );
 
   //-----------------------------------------------------
