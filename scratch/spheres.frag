@@ -58,8 +58,8 @@ float sD(vec3 ro,vec3 rd,vec4 sph) {
 
 vec2 polarCoords( vec3 pos ) {
   pos = n(pos);
-  float theta = 0.5 - atan(pos.x,pos.y) * k2PIi;
-  float alpha = 0.5 - asin(pos.z) * kPIi;
+  float theta = 0.5 - atan(pos.x,pos.z) * k2PIi;
+  float alpha = 0.5 - acos(pos.y) * kPIi;
   return vec2( theta, alpha );
 }
 
@@ -95,18 +95,6 @@ float sphOcclusion( in vec3 pos, in vec3 nor, in vec4 sph )
 		return clamp( res*(sph.w*sph.w)/(l*l*l), 0.0, 1.0 );
 }
 
-float chex(vec2 uv)
-{
-  vec2 w = fwidth(uv) + 0.0001;
-  vec2 i = 2.0*(abs(f((uv-0.5*w)*0.5)-0.5)-abs(f((uv+0.5*w)*0.5)-0.5))/w;
-  return 0.5 - 0.5*i.x*i.y;
-}
-
-float schex(vec2 uv) {
-  vec2 i = sign(2.*(f(0.5*uv) - 0.5));
-  return 0.5*i.x*i.y;
-}
-
 // --- analytically box-filtered checkerboard ---
 
 vec3 tri( in vec3 x )
@@ -140,7 +128,7 @@ float granite(vec2 uv) {
   return g;
 }
 
-#define sharpness 4.
+#define sharpness 1.
 
 float sphTex( vec3 pos, vec3 nor, vec4 s )
 {
@@ -148,19 +136,16 @@ float sphTex( vec3 pos, vec3 nor, vec4 s )
   pR(pos.xz,ut*0.25);
   // return checkersTextureGradBox(pos);
   vec2 uv = polarCoords( pos );
-  float c = chex( uv * 32.* vec2(1,1) );
-  return c;
+  float c = dots( uv * 16.* vec2(2,1) );
+  // return c;
+  nor = sN(pos, s);
   vec3 weights = abs(nor);
   weights = pow(weights, vec3(sharpness) );
   weights = weights / (weights.x + weights.y + weights.z);
-  return c * granite(pos.xy) * weights.z +
-    granite(pos.yz) * weights.x +
-    granite(pos.xz+1.) * weights.y;
+  return dots(pos.xy) * weights.z +
+    dots(pos.yz) * weights.x +
+    dots(pos.xz+1.) * weights.y;
 }
-
-vec4 p = vec4(n(vec3(0,1,0)),1);
-vec4 s = vec4(0,0,0,1);
-vec3 lightSource = vec3(-10,10,50);
 
 float ai( float x, float m, float n ) {
   float t = x/m; if( x>m ) return x; return (2.0*n - m*t + 2.0*m - 3.0*n)*t*t + n;
@@ -173,18 +158,39 @@ struct RI {
   vec3 rd;
   vec3 nor;
   int mid;
+  vec3 col;
   float spec;
 };
 
+vec4 p = vec4(n(vec3(0,1,0)),1);
+vec3 po = vec3(0,0,0);
+vec4 s = vec4(0,0,0,1);
+vec3 lightSource = vec3(-10,10,50);
+
+float chex(vec2 uv)
+{
+  vec2 w = fwidth(uv) + 0.01;
+  // w = w / 2. + 0.01;
+  vec2 i = 2.0*(abs(f((uv-0.5*w)*0.5)-0.5)-abs(f((uv+0.5*w)*0.5)-0.5))/w;
+  return 0.5 - 0.5*i.x*i.y;
+}
+
+float schex(vec2 uv) {
+  vec2 s = sign(fract(uv*.5)-.5);
+  return .5 - .5*s.x*s.y;
+}
+
 vec3 pC( vec3 pos, vec4 p) {
-  vec3 c = vec3(chex(pos.xz*2.));
+  vec3 c = vec3(chex(pos.xz-po.xz*2.));
+  // return vec3(0.3);
   return c;
 }
 
 vec3 sC( vec3 pos, vec4 s ) {
-  vec3 n = sN(pos.xyz,s);
-  return vec3(sphTex(pos.xyz,n,s));
-  return vec3(checkersTextureGradBox(pos.xyz*2.));
+  vec3 n = sN(pos.xyz,s), c;
+  c = vec3(sphTex(pos.xyz,n,s));
+  c *= vec3(0.2, 0.8, 0.6);
+  return c;
 }
 
 vec3 shade( RI ri ) {
@@ -194,18 +200,18 @@ vec3 shade( RI ri ) {
   vec3 ha = (ol + oc) * 0.5;
   ha = normalize(ha);
   float d = max(0.,dot(ol,ri.nor));
-  float spe = pow(max(0.0, dot(oc, reflect(-ol, ri.nor))), 30.) * 2.0;
-  d += spe;
+  float spe = pow(max(0.0, dot(oc, reflect(-ol, ri.nor))), 30.) * ri.spec;
   col = d;
   col *= 1.-sphOcclusion(ri.pos,ri.nor,s);
   col *= clamp(sSS(ri.pos, ol, s),0.,1.);
   col = ai(col,0.2,0.015);
+  col = clamp(col,0.,1.) + spe;
   return vec3(col);
 }
 
 float light( RI ri ) {
   vec3 cl = n(lightSource - ri.ro);
-  float i = dot(cl, ri.rd)+0.0001;
+  float i = max(0.,dot(cl, ri.rd)+0.0001);
   i = pow(i,30.);
   i = pow(i,30.);
   i = pow(i,30.);
@@ -225,6 +231,8 @@ void mapRay( inout RI ri ) {
     ri.pos = pi.xyz;
     ri.mid = GROUND;
     ri.d = pi.w;
+    ri.col = pC(ri.pos, p);
+    ri.spec = 0.;
   }
   vec4 si = sI(ri.ro, ri.rd, s);
   if( si.w > 0. && si.w < ri.d ) {
@@ -232,6 +240,8 @@ void mapRay( inout RI ri ) {
     ri.pos = si.xyz;
     ri.mid = SPHERE;
     ri.d = si.w;
+    ri.col = sC(ri.pos, s);
+    ri.spec = 1.;
   }
 }
 
@@ -253,31 +263,29 @@ vec3 sky( RI ri ) {
 
 void sphColor( RI ri, inout vec3 col ) {
   RI sec;
-  col = sC(ri.pos, s);
+  col = ri.col;
   col *= shade( ri );
   col *= exp( -0.05*ri.d );
-  sec.rd = reflect( ri.rd, ri.nor );
-  sec.ro = ri.pos + 0.01 * sec.rd;
-  sec.d = inf;
-  mapRay( sec );
-  if( sec.mid == GROUND ) {
-    vec3 sc = pC(sec.pos, p);
-    sc *= shade( sec );
-    sc *= exp( -0.05*ri.d );
-    col += sc;
-  }
-  col *= shade( ri );
-  col *= exp( -0.05*ri.d );
-  if( sec.mid == SKY ) {
-    col += sky(sec);
-  }
+  // sec.rd = reflect( ri.rd, ri.nor );
+  // sec.ro = ri.pos + 0.01 * sec.rd;
+  // sec.d = inf;
+  // mapRay( sec );
+  // if( sec.mid == GROUND ) {
+  //   vec3 sc = pC(sec.pos, p);
+  //   sc *= shade( sec );
+  //   sc *= exp( -0.05*ri.d );
+  //   col += col * sc * 0.5;
+  // }
+  // if( sec.mid == SKY ) {
+  //   col += col * sky(sec) * 0.5;
+  // }
 }
 
 vec3 getRayColor( RI pri, inout vec3 col ) {
   mapRay( pri );
   RI sec;
   if( pri.mid == GROUND ) {
-    col = pC(pri.pos, p);
+    col = pri.col;
     sec.rd = reflect( pri.rd, pri.nor );
     sec.ro = pri.pos + 0.01 * sec.rd;
     sec.d = inf;
@@ -322,7 +330,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   float an = 0.3*time - 7.0*m.x - 3.5;
 
   float le = 2.5;
-  float d = 10.;
+  float d = 10.* m.x -1. * m.y;
   vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+m.y*d),m.y*10.,cos(m.x*k2PI*2.)*4.*(1.+m.y*d));
   vec3 ta = cen;
   vec3 ww = normalize( ta - ro );
