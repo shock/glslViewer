@@ -128,27 +128,8 @@ float granite(vec2 uv) {
   return g;
 }
 
-#define sharpness 1.
-
-float sphTex( vec3 pos, vec3 nor, vec4 s )
-{
-  pos = (pos - s.xyz) * 3.;
-  pR(pos.xz,ut*0.25);
-  // return checkersTextureGradBox(pos);
-  vec2 uv = polarCoords( pos );
-  float c = dots( uv * 16.* vec2(2,1) );
-  // return c;
-  nor = sN(pos, s);
-  vec3 weights = abs(nor);
-  weights = pow(weights, vec3(sharpness) );
-  weights = weights / (weights.x + weights.y + weights.z);
-  return dots(pos.xy) * weights.z +
-    dots(pos.yz) * weights.x +
-    dots(pos.xz+1.) * weights.y;
-}
-
 float ai( float x, float m, float n ) {
-  float t = x/m; if( x>m ) return x; return (2.0*n - m*t + 2.0*m - 3.0*n)*t*t + n;
+  if( x>m ) return x; float t = x/m; return (2.0*n - m*t + 2.0*m - 3.0*n)*t*t + n;
 }
 
 struct RI {
@@ -164,8 +145,8 @@ struct RI {
 
 vec4 p = vec4(n(vec3(0,1,0)),1);
 vec3 po = vec3(0,0,0);
-vec4 s = vec4(0,0,0,1);
-vec3 lightSource = vec3(-10,10,50);
+vec4 s = vec4(0,1,0,1);
+vec3 lightSource = vec3(-100,100,500);
 
 float chex(vec2 uv)
 {
@@ -180,6 +161,25 @@ float schex(vec2 uv) {
   return .5 - .5*s.x*s.y;
 }
 
+#define sharpness 1.
+
+float sphTex( vec3 pos, vec3 nor, vec4 s )
+{
+  pos = (pos - s.xyz) * 3.;
+  pR(pos.xz,ut*0.25);
+  // return checkersTextureGradBox(pos);
+  vec2 uv = polarCoords( pos );
+  float c = chex( uv * 16.* vec2(2,1) );
+  return c;
+  nor = sN(pos, s);
+  vec3 weights = abs(nor);
+  weights = pow(weights, vec3(sharpness) );
+  weights = weights / (weights.x + weights.y + weights.z);
+  return dots(pos.xy) * weights.z +
+    dots(pos.yz) * weights.x +
+    dots(pos.xz+1.) * weights.y;
+}
+
 vec3 pC( vec3 pos, vec4 p) {
   vec3 c = vec3(chex(pos.xz-po.xz*2.));
   // return vec3(0.3);
@@ -189,7 +189,7 @@ vec3 pC( vec3 pos, vec4 p) {
 vec3 sC( vec3 pos, vec4 s ) {
   vec3 n = sN(pos.xyz,s), c;
   c = vec3(sphTex(pos.xyz,n,s));
-  c *= vec3(0.2, 0.8, 0.6);
+  // c *= vec3(0.2, 0.8, 0.6);
   return c;
 }
 
@@ -226,7 +226,7 @@ void mapRay( inout RI ri ) {
   vec4 pi = pI(ri.ro, ri.rd, p);
   vec3 n;
   ri.mid = SKY;
-  if( pi.w > 0. && pi.w < ri.d ) {
+  if( dot(p.xyz, ri.rd) < 0. && pi.w > 0. && pi.w < ri.d ) {
     ri.nor = pN(p);
     ri.pos = pi.xyz;
     ri.mid = GROUND;
@@ -247,13 +247,18 @@ void mapRay( inout RI ri ) {
 
 #define inf 1e20
 
-vec3 sphReflection( RI ri ) {
-  vec3 sl = n(lightSource - s.xyz);
-  vec3 sg = n(ri.ro - s.xyz);
-  vec3 hw = n(0.5 * (sl+sg));
-  vec3 col;
-
-  return col;
+vec4 sphReflectionPoint( vec3 pos, vec4 s ) {
+  vec4 sRP = vec4(-1);
+  RI ri; ri.rd = n(lightSource - pos); ri.ro = pos + 0.01 * ri.rd; ri.d = inf;
+  mapRay( ri );
+  if( ri.d == inf ) {
+    vec3 sl = n(lightSource - s.xyz);
+    vec3 sg = n(pos - s.xyz);
+    sRP.xyz = n(0.5 * (sl+sg));
+    sRP.w = dot(sl,sRP.xyz);
+    sRP.xyz = sRP.xyz * s.w + s.xyz;
+  }
+  return sRP;
 }
 
 vec3 sky( RI ri ) {
@@ -266,19 +271,6 @@ void sphColor( RI ri, inout vec3 col ) {
   col = ri.col;
   col *= shade( ri );
   col *= exp( -0.05*ri.d );
-  // sec.rd = reflect( ri.rd, ri.nor );
-  // sec.ro = ri.pos + 0.01 * sec.rd;
-  // sec.d = inf;
-  // mapRay( sec );
-  // if( sec.mid == GROUND ) {
-  //   vec3 sc = pC(sec.pos, p);
-  //   sc *= shade( sec );
-  //   sc *= exp( -0.05*ri.d );
-  //   col += col * sc * 0.5;
-  // }
-  // if( sec.mid == SKY ) {
-  //   col += col * sky(sec) * 0.5;
-  // }
 }
 
 vec3 getRayColor( RI pri, inout vec3 col ) {
@@ -299,6 +291,10 @@ vec3 getRayColor( RI pri, inout vec3 col ) {
     col *= exp( -0.05*pri.d );
     if( sec.mid == SKY ) {
       col += sky(sec)*0.1;
+    }
+    vec4 sRP = sphReflectionPoint(pri.pos, s);
+    if( sRP.w > 0. ) {
+      col += max(0.,sRP.w) * sC(sRP.xyz, s) * sRP.w;
     }
   }
   if( pri.mid == SKY ) {
@@ -330,8 +326,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   float an = 0.3*time - 7.0*m.x - 3.5;
 
   float le = 2.5;
-  float d = 10.* m.x -1. * m.y;
-  vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+m.y*d),m.y*10.,cos(m.x*k2PI*2.)*4.*(1.+m.y*d));
+  float d = 1.* m.x +10. * m.y;
+  vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+m.y*d),m.y*10.-2.,cos(m.x*k2PI*2.)*4.*(1.+m.y*d));
   vec3 ta = cen;
   vec3 ww = normalize( ta - ro );
   vec3 uu = normalize( cross(ww,vec3(0.0,1.0,0.0) ) );
