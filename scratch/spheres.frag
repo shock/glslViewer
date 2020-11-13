@@ -18,6 +18,7 @@ uniform vec2 u_mouse;
 #define n(x) normalize(x)
 #define v3 vec3(0)
 
+#define tc1 vec2(sin(ut),cos(ut))
 vec2 m=iMouse.xy / iResolution;
 
 void pR(inout vec2 p,float a) {
@@ -143,11 +144,6 @@ struct RI {
   float spec;
 };
 
-vec4 p = vec4(n(vec3(0,1,0)),1);
-vec3 po = vec3(0,0,0);
-vec4 s = vec4(0,1,0,1);
-vec3 lightSource = vec3(-100,100,500);
-
 float chex(vec2 uv)
 {
   vec2 w = fwidth(uv) + 0.01;
@@ -161,11 +157,16 @@ float schex(vec2 uv) {
   return .5 - .5*s.x*s.y;
 }
 
+vec4 p = vec4(n(vec3(0,1,0)),1);
+vec3 po = vec3(0,0,0);
+vec4 s = vec4(0,0,0,1);
+vec3 lightSource = vec3(0,100.,500);
+
 #define sharpness 1.
 
 float sphTex( vec3 pos, vec3 nor, vec4 s )
 {
-  pos = (pos - s.xyz) * 3.;
+  pos = (pos - s.xyz);
   pR(pos.xz,ut*0.25);
   // return checkersTextureGradBox(pos);
   vec2 uv = polarCoords( pos );
@@ -189,7 +190,7 @@ vec3 pC( vec3 pos, vec4 p) {
 vec3 sC( vec3 pos, vec4 s ) {
   vec3 n = sN(pos.xyz,s), c;
   c = vec3(sphTex(pos.xyz,n,s));
-  // c *= vec3(0.2, 0.8, 0.6);
+  c *= vec3(0.2, 0.8, 0.6);
   return c;
 }
 
@@ -203,7 +204,7 @@ vec3 shade( RI ri ) {
   float spe = pow(max(0.0, dot(oc, reflect(-ol, ri.nor))), 30.) * ri.spec;
   col = d;
   col *= 1.-sphOcclusion(ri.pos,ri.nor,s);
-  col *= clamp(sSS(ri.pos, ol, s),0.,1.);
+  col *= clamp(sSS(ri.pos+0.01*ol, ol, s),0.,1.);
   col = ai(col,0.2,0.015);
   col = clamp(col,0.,1.) + spe;
   return vec3(col);
@@ -250,13 +251,16 @@ void mapRay( inout RI ri ) {
 vec4 sphReflectionPoint( vec3 pos, vec4 s ) {
   vec4 sRP = vec4(-1);
   RI ri; ri.rd = n(lightSource - pos); ri.ro = pos + 0.01 * ri.rd; ri.d = inf;
-  mapRay( ri );
-  if( ri.d == inf ) {
+  float d = sD(ri.ro,ri.rd,s);
+  if( d < 0. ) {
     vec3 sl = n(lightSource - s.xyz);
     vec3 sg = n(pos - s.xyz);
-    sRP.xyz = n(0.5 * (sl+sg));
-    sRP.w = dot(sl,sRP.xyz);
-    sRP.xyz = sRP.xyz * s.w + s.xyz;
+    vec3 n = n(0.5 * (sl+sg));
+    vec3 nlt, ln;
+    vec3 p = n*s.w;
+    vec3 lp = n(p-lightSource);
+    sRP.w = dot(-lp,n);
+    sRP.xyz = n * s.w + s.xyz;
   }
   return sRP;
 }
@@ -287,14 +291,15 @@ vec3 getRayColor( RI pri, inout vec3 col ) {
       sphColor( sec, sc );
       col += sc;
     }
+    vec4 sRP = sphReflectionPoint(pri.pos, s);
+    if( sRP.w > 0. ) {
+      float d = sD(pri.pos, n(s.xyz-pri.pos), s);
+      col += sC(sRP.xyz, s) * sRP.w * exp( -0.5*d );
+    }
     col *= shade( pri );
     col *= exp( -0.05*pri.d );
     if( sec.mid == SKY ) {
       col += sky(sec)*0.1;
-    }
-    vec4 sRP = sphReflectionPoint(pri.pos, s);
-    if( sRP.w > 0. ) {
-      col += max(0.,sRP.w) * sC(sRP.xyz, s) * sRP.w;
     }
   }
   if( pri.mid == SKY ) {
@@ -303,12 +308,17 @@ vec3 getRayColor( RI pri, inout vec3 col ) {
   if( pri.mid == SPHERE ) {
     sphColor(pri, col);
   }
-  if( l(lightSource-pri.ro) < pri.d )
-    col += light( pri );
+  if( l(lightSource-pri.ro) < pri.d ) col += light( pri );
   return col;
 }
 
 vec3 hash3( float n ) { return fract(sin(vec3(n,n+1.0,n+2.0))*43758.5453123); }
+
+void animate() {
+  // pR(lightSource.yz, ut);
+  s.y += tc1.x;
+}
+
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
@@ -319,6 +329,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   float time = iTime*0.5;
   vec3 cen = vec3(0);
 
+  animate();
 
   //-----------------------------------------------------
   // camera
@@ -326,8 +337,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   float an = 0.3*time - 7.0*m.x - 3.5;
 
   float le = 2.5;
-  float d = 1.* m.x +10. * m.y;
-  vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+m.y*d),m.y*10.-2.,cos(m.x*k2PI*2.)*4.*(1.+m.y*d));
+  float d = 10.* m.x +2. * m.y;
+  vec3 ro = cen + vec3(sin(m.x*k2PI*2.)*4.*(1.+d),m.y*200.-2.,cos(m.x*k2PI*2.)*4.*(1.+d));
   vec3 ta = cen;
   vec3 ww = normalize( ta - ro );
   vec3 uu = normalize( cross(ww,vec3(0.0,1.0,0.0) ) );
@@ -336,11 +347,33 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
   float px = 1.0*(2.0/iResolution.y)*(1.0/le);
 
-  vec3 col;
-
   RI ri;
+
+  #if 0 // stereo
+
+  vec3 rol, ror;
+  vec3 spread = uu * (0.25);
+  rol = ro-spread*0.5;
+  ror = ro+spread*0.5;
+  vec3 leftColor, rightColor;
+  ro = rol;
   ri.ro = ro; ri.rd = rd; ri.mid = SKY; ri.d = inf;
+  leftColor = getRayColor( ri, leftColor );
+  ro = ror;
+  ri.ro = ro; ri.rd = rd; ri.mid = SKY; ri.d = inf;
+  rightColor = getRayColor( ri, rightColor );
+  leftColor *= vec3(1,0,0);
+  rightColor *= vec3(0,0,1);
+  vec3 col = mix(leftColor,rightColor,0.5);
+
+  #else
+
+  ri.ro = ro; ri.rd = rd; ri.mid = SKY; ri.d = inf;
+  vec3 col;
   col = getRayColor( ri, col );
+
+  #endif
+
 
   //-----------------------------------------------------
   // postprocess
