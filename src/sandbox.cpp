@@ -63,15 +63,21 @@ Sandbox::Sandbox():
     },
     []() { return toString(getDate(), ','); });
 
-    // // MOUSE
-    // uniforms.functions["u_mouse"] = UniformFunction("vec2", [](Shader& _shader) {
-    //     _shader.setUniform("u_mouse", float(getMouseX()), float(getMouseY()));
-    // },
-    // []() { return toString(getMouseX()) + "," + toString(getMouseY()); } );
-
-    // MOUSE 4
+    // // MOUSE no buttons
     uniforms.functions["u_mouse"] = UniformFunction("vec2", [](Shader& _shader) {
-        _shader.setUniform("u_mouse", float(getMouse4().x), float(getMouse4().y));
+        _shader.setUniform("u_mouse", float(getMouseX()), float(getMouseY()));
+    },
+    []() { return toString(getMouseX()) + "," + toString(getMouseY()); } );
+
+    // MOUSE updated when left button down
+    uniforms.functions["u_mouse_b"] = UniformFunction("vec2", [](Shader& _shader) {
+        _shader.setUniform("u_mouse_b", float(getMouse4().x), float(getMouse4().y));
+    },
+    []() { return toString(getMouse4().x) + "," + toString(getMouse4().y); } );
+
+    // TEST
+    uniforms.functions["u_test"] = UniformFunction("vec2", [](Shader& _shader) {
+        _shader.setUniform("u_test", float(getMouse4().x), float(getMouse4().y));
     },
     []() { return toString(getMouse4().x) + "," + toString(getMouse4().y); } );
 
