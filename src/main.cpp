@@ -29,7 +29,7 @@ void pal_sleep(uint64_t value)
     std::this_thread::sleep_for(std::chrono::microseconds(value));
 #else
     usleep(value);
-#endif 
+#endif
 }
 
 //  List of FILES to watch and the variable to communicate that between process
@@ -48,12 +48,15 @@ Osc osc_listener;
 
 std::string version = "1.6.8";
 std::string name = "GlslViewer";
-std::string header = name + " " + version + " by Patricio Gonzalez Vivo ( patriciogonzalezvivo.com )"; 
+std::string header = name + " " + version + " by Patricio Gonzalez Vivo ( patriciogonzalezvivo.com )";
 
 const unsigned int micro_wait = REST_SEC * 1000000;
 bool fullFps = false;
 bool timeOut = false;
 bool screensaver = false;
+bool paused = false;
+bool singleFrame = false;
+int maxFrames = -1;
 
 // Here is where all the magic happens
 Sandbox sandbox;
@@ -105,6 +108,8 @@ void printUsage(char * executableName) {
     std::cerr << "// [-p <osc_port>] - open OSC listening port" << std::endl;
     std::cerr << "// [-e/-E <command>] - execute command when start. Multiple -e flags can be chained" << std::endl;
     std::cerr << "// [-v/--version] - return glslViewer version" << std::endl;
+    std::cerr << "// [-s/--single] - run in single frame mode.  Window buffer is rendered only once when files change." << std::endl;
+    std::cerr << "// [-fl <frames>] - renders <frames> frames, then pauses until files change" << std::endl;
     std::cerr << "// [--verbose] - turn verbose outputs on" << std::endl;
     std::cerr << "// [--help] - print help for one or all command" << std::endl;
 }
@@ -133,7 +138,7 @@ void declareCommands() {
     },
     "help[,<command>]               print help for one or all command", false));
 
-    commands.push_back(Command("version", [&](const std::string& _line){ 
+    commands.push_back(Command("version", [&](const std::string& _line){
         if (_line == "version") {
             std::cout << version << std::endl;
             return true;
@@ -142,7 +147,7 @@ void declareCommands() {
     },
     "version                        return glslViewer version.", false));
 
-    commands.push_back(Command("window_width", [&](const std::string& _line){ 
+    commands.push_back(Command("window_width", [&](const std::string& _line){
         if (_line == "window_width") {
             std::cout << getWindowWidth() << std::endl;
             return true;
@@ -151,7 +156,7 @@ void declareCommands() {
     },
     "window_width                   return the width of the windows.", false));
 
-    commands.push_back(Command("window_height", [&](const std::string& _line){ 
+    commands.push_back(Command("window_height", [&](const std::string& _line){
         if (_line == "window_height") {
             std::cout << getWindowHeight() << std::endl;
             return true;
@@ -160,7 +165,7 @@ void declareCommands() {
     },
     "window_height                  return the height of the windows.", false));
 
-    commands.push_back(Command("pixel_density", [&](const std::string& _line){ 
+    commands.push_back(Command("pixel_density", [&](const std::string& _line){
         if (_line == "pixel_density") {
             std::cout << getPixelDensity() << std::endl;
             return true;
@@ -169,7 +174,7 @@ void declareCommands() {
     },
     "pixel_density                  return the pixel density.", false));
 
-    commands.push_back(Command("screen_size", [&](const std::string& _line){ 
+    commands.push_back(Command("screen_size", [&](const std::string& _line){
         if (_line == "screen_size") {
             glm::ivec2 screen_size = getScreenSize();
             std::cout << screen_size.x << ',' << screen_size.y << std::endl;
@@ -179,7 +184,7 @@ void declareCommands() {
     },
     "screen_size                    return the screen size.", false));
 
-    commands.push_back(Command("viewport", [&](const std::string& _line){ 
+    commands.push_back(Command("viewport", [&](const std::string& _line){
         if (_line == "viewport") {
             glm::ivec4 viewport = getViewport();
             std::cout << viewport.x << ',' << viewport.y << ',' << viewport.z << ',' << viewport.w << std::endl;
@@ -189,7 +194,7 @@ void declareCommands() {
     },
     "viewport                       return the viewport size.", false));
 
-    commands.push_back(Command("mouse", [&](const std::string& _line){ 
+    commands.push_back(Command("mouse", [&](const std::string& _line){
         if (_line == "mouse") {
             glm::vec2 pos = getMousePosition();
             std::cout << pos.x << "," << pos.y << std::endl;
@@ -198,8 +203,8 @@ void declareCommands() {
         return false;
     },
     "mouse                          return the mouse position.", false));
-    
-    commands.push_back(Command("fps", [&](const std::string& _line){ 
+
+    commands.push_back(Command("fps", [&](const std::string& _line){
         if (_line == "fps") {
             // Force the output in floats
             printf("%f\n", getFPS());
@@ -209,7 +214,7 @@ void declareCommands() {
     },
     "fps                            return u_fps, the number of frames per second.", false));
 
-    commands.push_back(Command("delta", [&](const std::string& _line){ 
+    commands.push_back(Command("delta", [&](const std::string& _line){
         if (_line == "delta") {
             // Force the output in floats
             printf("%f\n", getDelta());
@@ -219,7 +224,7 @@ void declareCommands() {
     },
     "delta                          return u_delta, the secs between frames.", false));
 
-    commands.push_back(Command("time", [&](const std::string& _line){ 
+    commands.push_back(Command("time", [&](const std::string& _line){
         if (_line == "time") {
             // Force the output in floats
             printf("%f\n", getTime());
@@ -229,7 +234,7 @@ void declareCommands() {
     },
     "time                           return u_time, the elapsed time.", false));
 
-    commands.push_back(Command("date", [&](const std::string& _line){ 
+    commands.push_back(Command("date", [&](const std::string& _line){
         if (_line == "date") {
             // Force the output in floats
             glm::vec4 date = getDate();
@@ -240,9 +245,9 @@ void declareCommands() {
     },
     "date                           return u_date as YYYY, M, D and Secs.", false));
 
-    commands.push_back(Command("files", [&](const std::string& _line){ 
+    commands.push_back(Command("files", [&](const std::string& _line){
         if (_line == "files") {
-            for (unsigned int i = 0; i < files.size(); i++) { 
+            for (unsigned int i = 0; i < files.size(); i++) {
                 std::cout << std::setw(2) << i << "," << std::setw(12) << toString(files[i].type) << "," << files[i].path << std::endl;
             }
             return true;
@@ -251,7 +256,7 @@ void declareCommands() {
     },
     "files                          return a list of files.", false));
 
-    commands.push_back( Command("define,", [&](const std::string& _line){ 
+    commands.push_back( Command("define,", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         bool change = false;
         if (values.size() == 2) {
@@ -284,7 +289,7 @@ void declareCommands() {
     },
     "define,<KEYWORD>               add a define to the shader", false));
 
-    commands.push_back( Command("undefine,", [&](const std::string& _line){ 
+    commands.push_back( Command("undefine,", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             sandbox.delDefine( values[1] );
@@ -306,7 +311,7 @@ void declareCommands() {
     "undefine,<KEYWORD>             remove a define on the shader", false));
 
 
-    commands.push_back(Command("reload", [&](const std::string& _line){ 
+    commands.push_back(Command("reload", [&](const std::string& _line){
         if (_line == "reload" || _line == "reload,all") {
             fullFps = true;
             for (unsigned int i = 0; i < files.size(); i++) {
@@ -327,7 +332,7 @@ void declareCommands() {
                         fileChanged = i;
                         filesMutex.unlock();
                         return true;
-                    } 
+                    }
                 }
             }
         }
@@ -335,7 +340,7 @@ void declareCommands() {
     },
     "reload[,<filename>]            reload one or all files", false));
 
-    commands.push_back(Command("frag", [&](const std::string& _line){ 
+    commands.push_back(Command("frag", [&](const std::string& _line){
         if (_line == "frag") {
             std::cout << sandbox.getSource(FRAGMENT) << std::endl;
             return true;
@@ -348,9 +353,9 @@ void declareCommands() {
                     unsigned int lineNumber = toInt(values[1]) - 1;
                     std::vector<std::string> lines = split(sandbox.getSource(FRAGMENT),'\n', true);
                     if (lineNumber < lines.size()) {
-                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl; 
+                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl;
                     }
-                    
+
                 }
                 else {
                     // Write shader into a file
@@ -365,7 +370,7 @@ void declareCommands() {
                 for (unsigned int i = 1; i < values.size(); i++) {
                     unsigned int lineNumber = toInt(values[i]) - 1;
                     if (lineNumber < lines.size()) {
-                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl; 
+                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl;
                     }
                 }
             }
@@ -374,7 +379,7 @@ void declareCommands() {
     },
     "frag[,<filename>]              returns or save the fragment shader source code.", false));
 
-    commands.push_back(Command("vert", [&](const std::string& _line){ 
+    commands.push_back(Command("vert", [&](const std::string& _line){
         if (_line == "vert") {
             std::cout << sandbox.getSource(VERTEX) << std::endl;
             return true;
@@ -387,9 +392,9 @@ void declareCommands() {
                     unsigned int lineNumber = toInt(values[1]) - 1;
                     std::vector<std::string> lines = split(sandbox.getSource(VERTEX),'\n', true);
                     if (lineNumber < lines.size()) {
-                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl; 
+                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl;
                     }
-                    
+
                 }
                 else {
                     // Write shader into a file
@@ -404,7 +409,7 @@ void declareCommands() {
                 for (unsigned int i = 1; i < values.size(); i++) {
                     unsigned int lineNumber = toInt(values[i]) - 1;
                     if (lineNumber < lines.size()) {
-                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl; 
+                        std::cout << lineNumber + 1 << " " << lines[lineNumber] << std::endl;
                     }
                 }
             }
@@ -413,12 +418,12 @@ void declareCommands() {
     },
     "vert[,<filename>]              returns or save the vertex shader source code.", false));
 
-    commands.push_back( Command("dependencies", [&](const std::string& _line){ 
+    commands.push_back( Command("dependencies", [&](const std::string& _line){
         if (_line == "dependencies") {
-            for (unsigned int i = 0; i < files.size(); i++) { 
+            for (unsigned int i = 0; i < files.size(); i++) {
                 if (files[i].type == GLSL_DEPENDENCY) {
                     std::cout << files[i].path << std::endl;
-                }   
+                }
             }
             return true;
         }
@@ -434,7 +439,7 @@ void declareCommands() {
     },
     "dependencies[,vert|frag]       returns all the dependencies of the vertex o fragment shader or both.", false));
 
-    commands.push_back(Command("update", [&](const std::string& _line){ 
+    commands.push_back(Command("update", [&](const std::string& _line){
         if (_line == "update") {
             sandbox.flagChange();
         }
@@ -442,10 +447,10 @@ void declareCommands() {
     },
     "update                         force all uniforms to be updated", false));
 
-    commands.push_back(Command("wait", [&](const std::string& _line){ 
+    commands.push_back(Command("wait", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
-            pal_sleep( toFloat(values[1])*1000000 ); 
+            pal_sleep( toFloat(values[1])*1000000 );
         }
         return false;
     },
@@ -454,7 +459,7 @@ void declareCommands() {
     commands.push_back(Command("fullFps", [&](const std::string& _line){
         if (_line == "fullFps") {
             std::string rta = fullFps ? "on" : "off";
-            std::cout <<  rta << std::endl; 
+            std::cout <<  rta << std::endl;
             return true;
         }
         else {
@@ -472,7 +477,7 @@ void declareCommands() {
     commands.push_back(Command("cursor", [&](const std::string& _line){
         if (_line == "cursor") {
             std::string rta = sandbox.cursor ? "on" : "off";
-            std::cout <<  rta << std::endl; 
+            std::cout <<  rta << std::endl;
             return true;
         }
         else {
@@ -487,7 +492,7 @@ void declareCommands() {
     },
     "cursor[,on|off]                show/hide cursor", false));
 
-    commands.push_back(Command("screenshot", [&](const std::string& _line){ 
+    commands.push_back(Command("screenshot", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
             consoleMutex.lock();
@@ -499,7 +504,7 @@ void declareCommands() {
     },
     "screenshot[,<filename>]        saves a screenshot to a filename.", false));
 
-    commands.push_back(Command("sequence", [&](const std::string& _line){ 
+    commands.push_back(Command("sequence", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() >= 3) {
             float from = toFloat(values[1]);
@@ -529,7 +534,7 @@ void declareCommands() {
                 consoleMutex.lock();
                 pct = sandbox.getRecordedPercentage();
                 consoleMutex.unlock();
-                
+
                 std::cout << "// [ ";
                 for (int i = 0; i < 50; i++) {
                     if (i < pct/2) {
@@ -548,7 +553,7 @@ void declareCommands() {
     },
     "sequence,<A_sec>,<B_sec>[,fps] saves a sequence of images from A to B second.", false));
 
-    commands.push_back(Command("q", [&](const std::string& _line){ 
+    commands.push_back(Command("q", [&](const std::string& _line){
         if (_line == "q") {
             bRun.store(false);
             return true;
@@ -557,7 +562,7 @@ void declareCommands() {
     },
     "q                              close glslViewer", false));
 
-    commands.push_back(Command("quit", [&](const std::string& _line){ 
+    commands.push_back(Command("quit", [&](const std::string& _line){
         if (_line == "quit") {
             // bRun.store(false);
             timeOut = true;
@@ -567,7 +572,7 @@ void declareCommands() {
     },
     "quit                           close glslViewer", false));
 
-    commands.push_back(Command("exit", [&](const std::string& _line){ 
+    commands.push_back(Command("exit", [&](const std::string& _line){
         if (_line == "exit") {
             // bRun.store(false);
             timeOut = true;
@@ -578,13 +583,18 @@ void declareCommands() {
     "exit                           close glslViewer", false));
 }
 
+void unpause() {
+    paused = false;
+    sandbox.frameNumber = 0;
+}
+
 // Main program
 //============================================================================
 int main(int argc, char **argv){
 
     // Set the size
     glm::ivec4 windowPosAndSize = glm::ivec4(0);
-    #if defined(DRIVER_VC) || defined(DRIVER_GBM) 
+    #if defined(DRIVER_VC) || defined(DRIVER_GBM)
         // RASPBERRYPI default windows size (fullscreen)
         glm::ivec2 screen = getScreenSize();
         windowPosAndSize.z = screen.x;
@@ -636,9 +646,13 @@ int main(int argc, char **argv){
                     std::string(argv[i]) == "--fullscreen" ) {
             windowStyle = FULLSCREEN;
         }
+        else if (   std::string(argv[i]) == "-s" ||
+                    std::string(argv[i]) == "--single" ) {
+            singleFrame = true;
+        }
         else if (   std::string(argv[i]) == "-l" ||
                     std::string(argv[i]) == "--life-coding" ){
-        #if defined(DRIVER_VC) || defined(DRIVER_GBM) 
+        #if defined(DRIVER_VC) || defined(DRIVER_GBM)
             windowPosAndSize.x = windowPosAndSize.z - 500;
             windowPosAndSize.z = windowPosAndSize.w = 500;
         #else
@@ -650,7 +664,7 @@ int main(int argc, char **argv){
             windowStyle = FULLSCREEN;
             screensaver = true;
         }
-        
+
     }
 
     if (displayHelp) {
@@ -667,6 +681,7 @@ int main(int argc, char **argv){
     struct stat st;                         // for files to watch
     int         textureCounter  = 0;        // Number of textures to load
     bool        vFlip           = true;     // Flip state
+    bool        frameLimitReached = false;
 
     //Load the the resources (textures)
     for (int i = 1; i < argc ; i++){
@@ -697,8 +712,14 @@ int main(int argc, char **argv){
             else
                 std::cout << "Argument '" << argument << "' should be followed by an <osc_port>. Skipping argument." << std::endl;
         }
+        else if ( argument== "-fl" || argument == "--framelimit" ) {
+            if(++i < argc)
+                maxFrames = toInt(std::string(argv[i]));
+            else
+                std::cout << "Argument '" << argument << "' should be followed by an <osc_port>. Skipping argument." << std::endl;
+        }
         else if ( argument == "-e" ) {
-            if(++i < argc)         
+            if(++i < argc)
                 cmds_arguments.push_back(std::string(argv[i]));
             else
                 std::cout << "Argument '" << argument << "' should be followed by a <command>. Skipping argument." << std::endl;
@@ -762,7 +783,7 @@ int main(int argc, char **argv){
                 file.type = GEOMETRY;
                 file.path = argument;
                 file.lastChange = st.st_mtime;
-                files.push_back(file); 
+                files.push_back(file);
                 sandbox.geom_index = files.size()-1;
             }
         }
@@ -803,7 +824,7 @@ int main(int argc, char **argv){
         }
         else if ( argument.find("-D") == 0 ) {
             // Defines are added/remove once existing shaders
-            // On multiple meshes files like OBJ, there can be multiple 
+            // On multiple meshes files like OBJ, there can be multiple
             // variations of meshes, that only get created after loading the sece
             // to work around that defines are add post-loading as argument commands
             std::string define = std::string("define,") + argument.substr(2);
@@ -813,9 +834,13 @@ int main(int argc, char **argv){
             std::string include = argument.substr(2);
             sandbox.include_folders.push_back(include);
         }
-        else if (   argument == "-v" || 
+        else if (   argument == "-v" ||
                     argument == "--version") {
             std::cout << version << std::endl;
+        }
+        else if (   argument == "-s" ||
+                    argument == "--single") {
+            std::cout << "single frame mode on" << std::endl;
         }
         else if ( argument.find("-") == 0 ) {
             std::string parameterPair = argument.substr( argument.find_last_of('-') + 1 );
@@ -834,7 +859,7 @@ int main(int argc, char **argv){
         char *renderer = (char *)glGetString(GL_RENDERER);
         char *version = (char *)glGetString(GL_VERSION);
         char *glsl_version = (char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
-    
+
         printf("OpenGL ES\n");
         printf("  Vendor: %s\n", vendor);
         printf("  Renderer: %s\n", renderer);
@@ -869,12 +894,12 @@ int main(int argc, char **argv){
     filesMutex.unlock();
 
     if (sandbox.verbose)
-        std::cout << "Starting Render Loop" << std::endl; 
-    
+        std::cout << "Starting Render Loop" << std::endl;
+
     // Render Loop
     while ( isGL() && bRun.load() ) {
         // Update
-        updateGL();
+        updateGL(paused);
 
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -884,28 +909,42 @@ int main(int argc, char **argv){
             sandbox.onFileChange( files, fileChanged );
             fileChanged = -1;
             filesMutex.unlock();
+            unpause();
         }
 
         // If nothing in the scene change skip the frame and try to keep it at 60fps
-        if (!timeOut && !fullFps && !sandbox.haveChange()) {
+        if ( !timeOut && !fullFps && !sandbox.haveChange() ) {
             pal_sleep( micro_wait );
             continue;
         }
 
-        // Draw Scene
-        sandbox.render();
+        if( !paused ) {
 
-        // Draw Cursor and 2D Debug elements
-        sandbox.renderUI();
+            // Draw Scene
+            sandbox.render();
 
-        // Finish drawing
-        sandbox.renderDone();
+            if( maxFrames == -1 || (sandbox.frameNumber < maxFrames) ) {
+                frameLimitReached = false;
+            } else {
+                frameLimitReached = true;
+            }
 
-        if ( timeOut && sandbox.screenshotFile == "" )
-            bRun.store(false);
-        else
-            // Swap the buffers
-            renderGL();
+            if( !singleFrame && !frameLimitReached ) {
+                // Draw Cursor and 2D Debug elements
+                sandbox.renderUI();
+            } else {
+                paused = true;
+            }
+
+            // Finish drawing
+            sandbox.renderDone();
+
+            if ( timeOut && sandbox.screenshotFile == "" )
+                bRun.store(false);
+            else
+                // Swap the buffers
+                renderGL();
+        }
     }
 
     // If is terminated by the windows manager, turn bRun off so the fileWatcher can stop
@@ -914,7 +953,7 @@ int main(int argc, char **argv){
     }
 
     onExit();
-    
+
     // Wait for watchers to end
     fileWatcher.join();
 
@@ -930,6 +969,7 @@ int main(int argc, char **argv){
 // Events
 //============================================================================
 void onKeyPress (int _key) {
+    // std::cout << _key << "\n";
     if (screensaver) {
         bRun = false;
         bRun.store(false);
@@ -938,6 +978,18 @@ void onKeyPress (int _key) {
         if (_key == 'q' || _key == 'Q') {
             bRun = false;
             bRun.store(false);
+        }
+        if (_key == '`' ) {
+            singleFrame = true;
+        } else if ( _key == 263 ) {
+            unpause();
+            rewindTime( 1.0f );
+        } else if ( _key == 262 ) {
+            unpause();
+            fastForwardTime( 1.0f );
+        } else if ( _key < 128 ) {
+            unpause();
+            singleFrame = false;
         }
     }
 }
@@ -964,6 +1016,7 @@ void onMouseDrag(float _x, float _y, int _button) {
 
 void onViewportResize(int _newWidth, int _newHeight) {
     sandbox.onViewportResize(_newWidth, _newHeight);
+    unpause();
 }
 
 void onExit() {

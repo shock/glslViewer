@@ -94,7 +94,8 @@
         "unordered_set": "cpp",
         "__memory": "cpp",
         "filesystem": "cpp",
-        "forward_list": "cpp"
+        "forward_list": "cpp",
+        "hashtable": "cpp"
     },
     "python.pythonPath": "/bin/python3"
 }

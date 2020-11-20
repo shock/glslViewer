@@ -24,7 +24,7 @@ std::string default_scene_frag = default_scene_frag0 + default_scene_frag1 + def
 // ------------------------------------------------------------------------- CONTRUCTOR
 Sandbox::Sandbox():
     frag_index(-1), vert_index(-1), geom_index(-1),
-    verbose(false), cursor(true), fxaa(false),
+    verbose(false), cursor(true), fxaa(false), frameNumber(0),
     // Main Vert/Frag/Geom
     m_frag_source(""), m_vert_source(""),
     // Buffers
@@ -76,10 +76,10 @@ Sandbox::Sandbox():
     []() { return toString(getMouse4().x) + "," + toString(getMouse4().y); } );
 
     // TEST
-    uniforms.functions["u_test"] = UniformFunction("vec2", [](Shader& _shader) {
-        _shader.setUniform("u_test", float(getMouse4().x), float(getMouse4().y));
+    uniforms.functions["u_frame"] = UniformFunction("int", [this](Shader& _shader) {
+        _shader.setUniform("u_frame", frameNumber);
     },
-    []() { return toString(getMouse4().x) + "," + toString(getMouse4().y); } );
+    [this]() { return toString(frameNumber); } );
 
     // VIEWPORT
     uniforms.functions["u_resolution"]= UniformFunction("vec2", [](Shader& _shader) {
@@ -731,7 +731,7 @@ void Sandbox::render() {
         m_record_fbo.bind();
 
     // Clear the background
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // RENDER CONTENT
     if (geom_index == -1) {
@@ -803,6 +803,7 @@ void Sandbox::render() {
         m_billboard_shader.setUniformTexture("u_tex0", &m_record_fbo, 0);
         m_billboard_vbo->render( &m_billboard_shader );
     }
+    frameNumber++;
 }
 
 

@@ -28,6 +28,8 @@ static Mouse mouse;
 static glm::vec4 mouse4 = {0.0, 0.0, 0.0, 0.0};
 static glm::ivec4 viewport;
 static double fTime = 0.0f;
+static double pTime = 0.0f;
+static double timeOffset = 0.0f;
 static double fDelta = 0.0f;
 static double fFPS = 0.0f;
 static float fPixelDensity = 1.0;
@@ -560,7 +562,17 @@ void debounceSetWindowTitle(std::string title){
 }
 #endif
 
-void updateGL(){
+void fastForwardTime( double amount ) {
+    timeOffset += amount;
+}
+
+void rewindTime( double amount ) {
+    timeOffset -= amount;
+}
+
+double prevTime = 0.0f;
+
+void updateGL( bool paused ){
     // Update time
     // --------------------------------------------------------------------
 
@@ -580,8 +592,16 @@ void updateGL(){
 
     #endif
 
-    fDelta = now - fTime;
-    fTime = now;
+    fDelta = now - prevTime;
+    prevTime = now;
+    if ( !paused ) {
+        fTime = now - pTime;
+    } else {
+        pTime = now - fTime;
+    }
+
+    // fTime = fTime + timeOffset;
+    // if( fTime < 0.0f ) { fTime =0.0f; }
 
     static int frame_count = 0;
     static double lastTime = 0.0;

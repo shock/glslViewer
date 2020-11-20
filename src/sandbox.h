@@ -12,13 +12,13 @@ class Sandbox {
 public:
     Sandbox();
     virtual ~Sandbox();
-    
+
     // Main stages
     void                setup(WatchFileList &_files, CommandList &_commands);
     bool                reloadShaders(WatchFileList &_files);
 
     void                flagChange();
-    void                unflagChange(); 
+    void                unflagChange();
     bool                haveChange();
 
     void                render();
@@ -26,7 +26,7 @@ public:
     void                renderDone();
 
     void                clear();
-    
+
     bool                isReady();
 
     void                record( float _start, float _end, float fps = 24.0 );
@@ -41,7 +41,7 @@ public:
     void                printDependencies( ShaderType _type ) const;
 
     Scene&              getScene() { return m_scene; }
-    
+
     // Some events
     void                onScroll( float _yoffset );
     void                onMouseDrag( float _x, float _y, int _button );
@@ -49,7 +49,7 @@ public:
     void                onFileChange( WatchFileList &_files, int _index );
     void                onScreenshot( std::string _file );
     void                onHistogram();
-   
+
     // Include folders
     List                include_folders;
 
@@ -67,6 +67,8 @@ public:
     bool                verbose;
     bool                cursor;
     bool                fxaa;
+    int                 frameNumber;
+
 
 private:
     void                _updateBuffers();
@@ -98,7 +100,7 @@ private:
     // Billboard
     Shader              m_billboard_shader;
     Vbo*                m_billboard_vbo;
-    
+
     // Cursor
     Shader              m_wireframe2D_shader;
     Vbo*                m_cross_vbo;
@@ -128,5 +130,5 @@ private:
     //  Debug
     bool                m_showTextures;
     bool                m_showPasses;
-    
+
 };

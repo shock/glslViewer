@@ -17,7 +17,9 @@ enum WindowStyle {
 //----------------------------------------------
 void initGL(glm::ivec4 &_viewport, WindowStyle _prop = REGULAR);
 bool isGL();
-void updateGL();
+void fastForwardTime( double amount );
+void rewindTime( double amount );
+void updateGL(bool paused);
 void renderGL();
 void closeGL();
 
