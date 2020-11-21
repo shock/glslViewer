@@ -492,6 +492,25 @@ void declareCommands() {
     },
     "cursor[,on|off]                show/hide cursor", false));
 
+    commands.push_back(Command("verbose", [&](const std::string& _line){
+        if (_line == "verbose") {
+            std::string rta = sandbox.verbose ? "on" : "off";
+            std::cout <<  rta << std::endl;
+            return true;
+        }
+        else {
+            std::vector<std::string> values = split(_line,',');
+            if (values.size() == 2) {
+                consoleMutex.lock();
+                sandbox.verbose = (values[1] == "on");
+                osc_listener.m_verbose = sandbox.verbose;
+                consoleMutex.unlock();
+            }
+        }
+        return false;
+    },
+    "verbose[,on|off]               verbose mode on/off", false));
+
     commands.push_back(Command("screenshot", [&](const std::string& _line){
         std::vector<std::string> values = split(_line,',');
         if (values.size() == 2) {
@@ -873,7 +892,7 @@ int main(int argc, char **argv){
         int param;
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &param);
         std::cout << "  GL_MAX_TEXTURE_SIZE = " << param << std::endl;
-
+        osc_listener.m_verbose = true;
     }
 
     // If no shader
@@ -944,6 +963,9 @@ int main(int argc, char **argv){
             else
                 // Swap the buffers
                 renderGL();
+        } else {
+            // we're paused so sleep a lot and just poll for events every so often
+            pal_sleep( micro_wait * 10 );
         }
     }
 

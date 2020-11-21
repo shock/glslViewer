@@ -20,6 +20,7 @@ public:
     bool start(int _port, std::function<void(const std::string &_cmd, std::mutex &_mutex)> _runCmd);
     void stop();
     bool isListening() const;
+    bool m_verbose;
 
 
 protected:
