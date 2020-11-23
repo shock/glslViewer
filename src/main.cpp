@@ -931,9 +931,16 @@ int main(int argc, char **argv){
             unpause();
         }
 
+        if( (maxFrames == -1 || (sandbox.frameNumber < maxFrames)) && !singleFrame ) {
+            frameLimitReached = false;
+        } else {
+            frameLimitReached = true;
+        }
+
         // If nothing in the scene change skip the frame and try to keep it at 60fps
         if ( !timeOut && !fullFps && !sandbox.haveChange() ) {
             pal_sleep( micro_wait );
+            if( frameLimitReached ) { paused = true; }
             continue;
         }
 
@@ -942,16 +949,10 @@ int main(int argc, char **argv){
             // Draw Scene
             sandbox.render();
 
-            if( maxFrames == -1 || (sandbox.frameNumber < maxFrames) ) {
-                frameLimitReached = false;
-            } else {
-                frameLimitReached = true;
-            }
+            // Draw Cursor and 2D Debug elements
+            sandbox.renderUI();
 
-            if( !singleFrame && !frameLimitReached ) {
-                // Draw Cursor and 2D Debug elements
-                sandbox.renderUI();
-            } else {
+            if( frameLimitReached ) {
                 paused = true;
             }
 
@@ -965,7 +966,7 @@ int main(int argc, char **argv){
                 renderGL();
         } else {
             // we're paused so sleep a lot and just poll for events every so often
-            pal_sleep( micro_wait * 10 );
+            pal_sleep( 200000 ); // 200 ms
         }
     }
 
@@ -1102,6 +1103,7 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
     if (!resolve) {
         _mutex.lock();
         sandbox.uniforms.parseLine(_cmd);
+        unpause();
         _mutex.unlock();
     }
 }
