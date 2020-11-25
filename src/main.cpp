@@ -735,7 +735,7 @@ int main(int argc, char **argv){
             if(++i < argc)
                 maxFrames = toInt(std::string(argv[i]));
             else
-                std::cout << "Argument '" << argument << "' should be followed by an <osc_port>. Skipping argument." << std::endl;
+                std::cout << "Argument '" << argument << "' should be followed by a number. Skipping argument." << std::endl;
         }
         else if ( argument == "-e" ) {
             if(++i < argc)
@@ -927,8 +927,8 @@ int main(int argc, char **argv){
             filesMutex.lock();
             sandbox.onFileChange( files, fileChanged );
             fileChanged = -1;
-            filesMutex.unlock();
             unpause();
+            filesMutex.unlock();
         }
 
         if( (maxFrames == -1 || (sandbox.frameNumber < maxFrames)) && !singleFrame ) {
@@ -965,7 +965,7 @@ int main(int argc, char **argv){
                 // Swap the buffers
                 renderGL();
         } else {
-            // we're paused so sleep a lot and just poll for events every so often
+            // we're paused, so sleep a lot and just poll for events every so often
             pal_sleep( 200000 ); // 200 ms
         }
     }
