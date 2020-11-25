@@ -18,6 +18,8 @@
 #include "io/osc.h"
 #include "tools/text.h"
 
+// #define DEBUG_LOG
+
 // GLOBAL VARIABLES
 //============================================================================
 //
@@ -605,6 +607,17 @@ void declareCommands() {
 void unpause() {
     paused = false;
     sandbox.frameNumber = 0;
+    maxFrames = -1;
+}
+
+void allowRefresh() {
+    paused = false;
+    sandbox.frameNumber = 0;
+}
+
+void doPause() {
+    // singleFrame = true;
+    maxFrames = 10;
 }
 
 // Main program
@@ -927,7 +940,7 @@ int main(int argc, char **argv){
             filesMutex.lock();
             sandbox.onFileChange( files, fileChanged );
             fileChanged = -1;
-            unpause();
+            allowRefresh();
             filesMutex.unlock();
         }
 
@@ -940,7 +953,7 @@ int main(int argc, char **argv){
         // If nothing in the scene change skip the frame and try to keep it at 60fps
         if ( !timeOut && !fullFps && !sandbox.haveChange() ) {
             pal_sleep( micro_wait );
-            if( frameLimitReached ) { paused = true; }
+            // if( frameLimitReached ) { paused = true; }
             continue;
         }
 
@@ -949,11 +962,11 @@ int main(int argc, char **argv){
             // Draw Scene
             sandbox.render();
 
-            // Draw Cursor and 2D Debug elements
-            sandbox.renderUI();
-
             if( frameLimitReached ) {
                 paused = true;
+            } else {
+                // Draw Cursor and 2D Debug elements
+                sandbox.renderUI();
             }
 
             // Finish drawing
@@ -964,6 +977,7 @@ int main(int argc, char **argv){
             else
                 // Swap the buffers
                 renderGL();
+
         } else {
             // we're paused, so sleep a lot and just poll for events every so often
             pal_sleep( 200000 ); // 200 ms
@@ -1003,12 +1017,12 @@ void onKeyPress (int _key) {
             bRun.store(false);
         }
         if (_key == '`' ) {
-            singleFrame = true;
+            doPause();
         } else if ( _key == 263 ) {
-            unpause();
+            allowRefresh();
             rewindTime( 1.0f );
         } else if ( _key == 262 ) {
-            unpause();
+            allowRefresh();
             fastForwardTime( 1.0f );
         } else if ( _key < 128 ) {
             unpause();
@@ -1038,7 +1052,7 @@ void onMouseDrag(float _x, float _y, int _button) {
 }
 
 void onViewportResize(int _newWidth, int _newHeight) {
-    unpause();
+    allowRefresh();
     sandbox.onViewportResize(_newWidth, _newHeight);
 }
 
@@ -1077,7 +1091,7 @@ void fileWatcherThread() {
 
 void runCmd(const std::string &_cmd, std::mutex &_mutex) {
     bool resolve = false;
-
+    bool somethingChanged = false;
     // Check if _cmd is present in the list of commands
     for (unsigned int i = 0; i < commands.size(); i++) {
         if (beginsWith(_cmd, commands[i].begins_with)) {
@@ -1102,8 +1116,11 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
     // If nothing match maybe the user is trying to define the content of a uniform
     if (!resolve) {
         _mutex.lock();
-        sandbox.uniforms.parseLine(_cmd);
-        if( paused ) unpause();
+        somethingChanged = sandbox.uniforms.parseLine(_cmd);
+#ifdef DEBUG_LOG
+    std::cout << "parseLine:" << toString(somethingChanged) << "\n";
+#endif
+        allowRefresh();
         _mutex.unlock();
     }
 }
