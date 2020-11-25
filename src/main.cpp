@@ -1103,7 +1103,7 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
     if (!resolve) {
         _mutex.lock();
         sandbox.uniforms.parseLine(_cmd);
-        unpause();
+        if( paused ) unpause();
         _mutex.unlock();
     }
 }
