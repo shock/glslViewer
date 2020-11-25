@@ -731,7 +731,7 @@ void Sandbox::render() {
         m_record_fbo.bind();
 
     // Clear the background
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // RENDER CONTENT
     if (geom_index == -1) {

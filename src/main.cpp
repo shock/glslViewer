@@ -1038,8 +1038,8 @@ void onMouseDrag(float _x, float _y, int _button) {
 }
 
 void onViewportResize(int _newWidth, int _newHeight) {
-    sandbox.onViewportResize(_newWidth, _newHeight);
     unpause();
+    sandbox.onViewportResize(_newWidth, _newHeight);
 }
 
 void onExit() {
@@ -1086,7 +1086,7 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
             if (commands[i].mutex)
                 _mutex.lock();
 
-            // Execute de command
+            // Execute the command
             resolve = commands[i].exec(_cmd);
 
             if (commands[i].mutex)
