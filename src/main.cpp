@@ -616,8 +616,8 @@ void allowRefresh() {
 }
 
 void doPause() {
-    // singleFrame = true;
-    maxFrames = 10;
+    singleFrame = true;
+    // maxFrames = 10;
 }
 
 // Main program
