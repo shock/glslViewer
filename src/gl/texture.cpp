@@ -32,10 +32,21 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     glBindTexture(GL_TEXTURE_2D, m_id);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // WDD
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // from https://www.khronos.org/opengl/wiki/Common_Mistakes#Legacy_Generation
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // glGenerateMipmap does not work on the mac mini 2011 (Intel HD 3000)
+    // for OpenGL versions pre-1.4 vvv
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     GLenum format = GL_RGBA;
     if (_channels == 4) {
@@ -47,7 +58,7 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
 #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4)
     else if (_channels == 2) {
         format = GL_RG;
-    } 
+    }
     else if (_channels == 1) {
         format = GL_RED;
     }
@@ -61,16 +72,16 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     }
     else if (_bits == 16) {
         type = GL_UNSIGNED_SHORT;
-    } 
+    }
     else if (_bits == 8) {
         type = GL_UNSIGNED_BYTE;
     }
-    else 
+    else
         std::cout << "Unrecognize GLenum type for " << _bits << " bits" << std::endl;
 
     m_width = _width;
     m_height = _height;
-    
+
 #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
     int max_size = std::max(m_width, m_height);
     if ( max_size > 1024) {
@@ -102,7 +113,9 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, format, type, _data);
 #else
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, format, type, _data);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, format, type, _data);
+    // from https://www.khronos.org/opengl/wiki/Common_Mistakes#Texture_upload_and_pixel_reads
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, format, type, _data);
 #endif
     return true;
 }
