@@ -37,5 +37,5 @@
 #endif
 
 extern void checkGLError(const char *filename, int line, bool exitOnError);
-#define TRAC
+#define TRAC std::cerr << "TRACE - " << __FILE__ << " : " << __LINE__ << "\n"
 #define check(x) checkGLError(__FILE__,__LINE__,x)

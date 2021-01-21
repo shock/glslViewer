@@ -26,12 +26,16 @@ void Texture::clear() {
 bool Texture::load(int _width, int _height, int _channels, int _bits, const void* _data) {
 
     // Generate an OpenGL texture ID for this texturez
-    glEnable(GL_TEXTURE_2D);
+    // glEnable(GL_TEXTURE_2D);
+check(false);
     if (m_id == 0)
         glGenTextures(1, &m_id);
+check(false);
     glBindTexture(GL_TEXTURE_2D, m_id);
+check(false);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+check(false);
 
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // WDD
@@ -41,12 +45,16 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
 
     // from https://www.khronos.org/opengl/wiki/Common_Mistakes#Legacy_Generation
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+check(false);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+check(false);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+check(false);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+check(false);
     // glGenerateMipmap does not work on the mac mini 2011 (Intel HD 3000)
     // for OpenGL versions pre-1.4 vvv
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
     GLenum format = GL_RGBA;
     if (_channels == 4) {
@@ -116,6 +124,9 @@ bool Texture::load(int _width, int _height, int _channels, int _bits, const void
     // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, format, type, _data);
     // from https://www.khronos.org/opengl/wiki/Common_Mistakes#Texture_upload_and_pixel_reads
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, format, type, _data);
+check(false);
+    glGenerateMipmap(GL_TEXTURE_2D);
+check(false);
 #endif
     return true;
 }
