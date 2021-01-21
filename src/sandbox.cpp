@@ -412,7 +412,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_exposure[,<aper.>,<shutter>,<sensit.>]  get or set the camera exposure values."));
 
-    // LOAD SHACER
+    // LOAD SHADER
     // -----------------------------------------------
 
     if (vert_index != -1) {
@@ -470,20 +470,28 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
 
     // Prepare viewport
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    check(false);
     glClear(GL_COLOR_BUFFER_BIT);
+    check(false);
 
     glDisable(GL_DEPTH_TEST);
+    check(false);
     glFrontFace(GL_CCW);
+    check(false);
 
     // Turn on Alpha blending
     glEnable(GL_BLEND);
+    check(false);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    check(false);
 
     // Clear the background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    check(false);
 
     // LOAD SHADERS
     reloadShaders( _files );
+    check(false);
 
     // TODO:
     //      - this seams to solve the problem of buffers not properly initialize
@@ -491,6 +499,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     //
     uniforms.buffers.clear();
     _updateBuffers();
+    check(false);
 
     flagChange();
 }
@@ -563,6 +572,7 @@ int Sandbox::getRecordedPercentage() {
 
 bool Sandbox::reloadShaders( WatchFileList &_files ) {
     flagChange();
+    check(false);
 
     // UPDATE scene shaders of models (materials)
     if (geom_index == -1) {
@@ -571,8 +581,11 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
             std::cout << "// Reload 2D shaders" << std::endl;
 
         // Reload the shader
+    check(false);
         m_canvas_shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+    check(false);
         m_canvas_shader.load(m_frag_source, m_vert_source, verbose);
+    check(false);
     }
     else {
         if (verbose)
@@ -580,6 +593,7 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
 
         m_scene.loadShaders(m_frag_source, m_vert_source, verbose);
     }
+    check(false);
 
     // UPDATE shaders dependencies
     {
@@ -615,8 +629,10 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
     }
 
     // UPDATE Buffers
+    check(false);
     m_buffers_total = count_buffers(m_frag_source);
     _updateBuffers();
+    check(false);
 
     // UPDATE Postprocessing
     bool havePostprocessing = check_for_postprocessing(getSource(FRAGMENT));
@@ -666,10 +682,12 @@ void Sandbox::_updateBuffers() {
     }
     else {
         for (unsigned int i = 0; i < m_buffers_shaders.size(); i++) {
+    check(false);
 
             // Reload shader code
             m_buffers_shaders[i].addDefine("BUFFER_" + toString(i));
             m_buffers_shaders[i].load(m_frag_source, billboard_vert, false);
+    check(false);
         }
     }
 }
@@ -677,10 +695,12 @@ void Sandbox::_updateBuffers() {
 // ------------------------------------------------------------------------- DRAW
 void Sandbox::_renderBuffers() {
     glDisable(GL_BLEND);
+    check(false);
 
     for (unsigned int i = 0; i < uniforms.buffers.size(); i++) {
         uniforms.buffers[i].bind();
         m_buffers_shaders[i].use();
+    check(false);
 
         // Update uniforms and textures
         uniforms.feedTo( m_buffers_shaders[i] );
@@ -692,13 +712,16 @@ void Sandbox::_renderBuffers() {
             }
         }
 
+        TRAC;
         m_billboard_vbo->render( &m_buffers_shaders[i] );
 
         uniforms.buffers[i].unbind();
     }
 
     glEnable(GL_BLEND);
+    check(false);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    check(false);
 }
 
 void Sandbox::render() {
@@ -712,6 +735,7 @@ void Sandbox::render() {
     // -----------------------------------------------
     if (uniforms.buffers.size() > 0)
         _renderBuffers();
+    check(false);
 
     // MAIN SCENE
     // ----------------------------------------------- < main scene start
@@ -732,20 +756,26 @@ void Sandbox::render() {
 
     // Clear the background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    check(false);
 
     // RENDER CONTENT
     if (geom_index == -1) {
         // Load main shader
         m_canvas_shader.use();
+    check(false);
 
         // Update Uniforms and textures variables
         uniforms.feedTo( m_canvas_shader );
+    check(false);
 
         // Pass special uniforms
         m_canvas_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.));
+    check(false);
+        TRAC;
         m_billboard_vbo->render( &m_canvas_shader );
     }
     else {
+        TRAC;
         m_scene.render(uniforms);
         if (m_scene.showGrid || m_scene.showAxis || m_scene.showBBoxes)
             m_scene.renderDebug(uniforms);
@@ -769,6 +799,7 @@ void Sandbox::render() {
         for (unsigned int i = 0; i < uniforms.buffers.size(); i++)
             m_postprocessing_shader.setUniformTexture("u_buffer" + toString(i), &uniforms.buffers[i]);
 
+        TRAC;
         m_billboard_vbo->render( &m_postprocessing_shader );
     }
     else if (m_histogram) {
@@ -786,6 +817,7 @@ void Sandbox::render() {
         m_billboard_shader.setUniform("u_translate", 0.0f, 0.0f);
         m_billboard_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
         m_billboard_shader.setUniformTexture("u_tex0", &m_scene_fbo, 0);
+        TRAC;
         m_billboard_vbo->render( &m_billboard_shader );
     }
 
@@ -801,6 +833,7 @@ void Sandbox::render() {
         m_billboard_shader.setUniform("u_translate", 0.0f, 0.0f);
         m_billboard_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
         m_billboard_shader.setUniformTexture("u_tex0", &m_record_fbo, 0);
+        TRAC;
         m_billboard_vbo->render( &m_billboard_shader );
     }
     frameNumber++;
@@ -838,6 +871,7 @@ void Sandbox::renderUI() {
                 m_billboard_shader.setUniform("u_translate", xOffset, yOffset);
                 m_billboard_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
                 m_billboard_shader.setUniformTexture("u_tex0", &uniforms.buffers[i]);
+        TRAC;
                 m_billboard_vbo->render(&m_billboard_shader);
                 yOffset -= yStep * 2.0;
             }
@@ -849,6 +883,7 @@ void Sandbox::renderUI() {
                     m_billboard_shader.setUniform("u_translate", xOffset, yOffset);
                     m_billboard_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
                     m_billboard_shader.setUniformTexture("u_tex0", &m_scene_fbo, 0);
+        TRAC;
                     m_billboard_vbo->render(&m_billboard_shader);
                     yOffset -= yStep * 2.0;
                 }
@@ -863,6 +898,7 @@ void Sandbox::renderUI() {
                     uniforms.functions["u_cameraDistance"].assign(m_billboard_shader);
                     m_billboard_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
                     m_billboard_shader.setUniformDepthTexture("u_tex0", &m_scene_fbo);
+        TRAC;
                     m_billboard_vbo->render(&m_billboard_shader);
                     yOffset -= yStep * 2.0;
                 }
@@ -883,6 +919,7 @@ void Sandbox::renderUI() {
                         m_billboard_shader.setUniform("u_depth", 0.0f);
                         m_billboard_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
                         m_billboard_shader.setUniformDepthTexture("u_tex0", uniforms.lights[i].getShadowMap());
+        TRAC;
                         m_billboard_vbo->render(&m_billboard_shader);
                         x += w;
                     }
@@ -910,6 +947,7 @@ void Sandbox::renderUI() {
             m_histogram_shader.setUniform("u_resolution", (float)getWindowWidth(), (float)getWindowHeight());
             m_histogram_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
             m_histogram_shader.setUniformTexture("u_sceneHistogram", m_histogram_texture, 0);
+        TRAC;
             m_billboard_vbo->render(&m_histogram_shader);
         }
     }
@@ -938,13 +976,14 @@ void Sandbox::renderUI() {
                 m_billboard_shader.setUniform("u_translate", xOffset, yOffset);
                 m_billboard_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
                 m_billboard_shader.setUniformTexture("u_tex0", it->second, 0);
+        TRAC;
                 m_billboard_vbo->render(&m_billboard_shader);
                 yOffset -= yStep * 2.0;
             }
         }
     }
 
-    if (cursor) {
+    if (cursor && false) {
         if (m_cross_vbo == nullptr)
             m_cross_vbo = cross(glm::vec3(0.0, 0.0, 0.0), 10.).getVbo();
 
@@ -957,6 +996,7 @@ void Sandbox::renderUI() {
         m_wireframe2D_shader.setUniform("u_scale", 1.0f, 1.0f);
         m_wireframe2D_shader.setUniform("u_translate", (float)getMouseX(), (float)getMouseY());
         m_wireframe2D_shader.setUniform("u_modelViewProjectionMatrix", getOrthoMatrix());
+        TRAC;
         m_cross_vbo->render(&m_wireframe2D_shader);
         glLineWidth(1.0f);
     }

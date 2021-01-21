@@ -72,7 +72,7 @@ LDFLAGS += $(shell pkg-config --libs glfw3 glu gl x11 xrandr xi xxf86vm xcursor 
 else ifeq ($(PLATFORM),Darwin)
 CXX = /usr/bin/clang++
 ARCH = -arch x86_64
-CFLAGS += $(ARCH) -DPLATFORM_OSX -DDRIVER_GLFW -stdlib=libc++ $(shell pkg-config --cflags glfw3)
+CFLAGS += $(ARCH) -DPLATFORM_OSX -DDRIVER_GLFW -D__gl_h_ -DGL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED -stdlib=libc++ $(shell pkg-config --cflags glfw3)
 INCLUDES += -I/System/Library/Frameworks/GLUI.framework
 LDFLAGS += $(ARCH) -framework OpenGL -framework Cocoa -framework CoreVideo -framework IOKit $(shell pkg-config --libs glfw3)
 
@@ -88,8 +88,8 @@ $(EXE): $(OBJECTS) $(HEADERS)
 	$(CXX) $(CFLAGS) $(OBJECTS) $(LDFLAGS) -rdynamic -o $@
 
 clean:
-	@rm -rvf $(EXE) src/*.o src/*/*.o include/*/*.o include/*/*/*.o include/*/*/*/*.o *.dSYM 
-	
+	@rm -rvf $(EXE) src/*.o src/*/*.o include/*/*.o include/*/*/*.o include/*/*/*/*.o *.dSYM
+
 install:
 	@cp bin/glslScreenSaver /usr/local/bin
 	@cp bin/glslLoader /usr/local/bin

@@ -1,16 +1,17 @@
 #include "vbo.h"
 #include <iostream>
 
-Vbo::Vbo(VertexLayout* _vertexLayout, GLenum _drawMode) : m_vertexLayout(_vertexLayout), m_glVertexBuffer(0), m_nVertices(0), m_glIndexBuffer(0), m_nIndices(0), m_isUploaded(false) {
+Vbo::Vbo(VertexLayout* _vertexLayout, GLenum _drawMode) : m_vertexLayout(_vertexLayout), m_glVertexBuffer(0), m_nVertices(0), m_glIndexBuffer(0), m_nIndices(0), vertexLoc(0), m_isUploaded(false) {
     setDrawMode(_drawMode);
 }
 
-Vbo::Vbo() : m_vertexLayout(NULL), m_glVertexBuffer(0), m_nVertices(0), m_glIndexBuffer(0), m_nIndices(0), m_isUploaded(false) {
+Vbo::Vbo() : m_vertexLayout(NULL), m_glVertexBuffer(0), m_nVertices(0), m_glIndexBuffer(0), m_nIndices(0), vertexLoc(0), m_isUploaded(false) {
 }
 
 Vbo::~Vbo() {
     glDeleteBuffers(1, &m_glVertexBuffer);
     glDeleteBuffers(1, &m_glIndexBuffer);
+    // glDeleteBuffers(1, &m_glVao);
 
     m_vertexData.clear();
     m_indices.clear();
@@ -114,6 +115,19 @@ void Vbo::upload() {
     m_isUploaded = true;
 }
 
+void Vbo::setupBuffers(Shader* _shader) {
+    GLuint buffers;
+
+    check(false);
+    glGenVertexArrays(1, m_glVao);
+    check(false);
+    glBindVertexArray(m_glVao[0]);
+    check(false);
+    upload();
+    m_vertexLayout->enable(_shader);
+    check(false);
+}
+
 void Vbo::printInfo() {
     std::cout << "Vertices  = " << m_nVertices << std::endl;
     std::cout << "Indices   = " << m_nIndices << std::endl;
@@ -127,7 +141,9 @@ void Vbo::render(Shader* _shader) {
 
     // Ensure that geometry is buffered into GPU
     if (!m_isUploaded) {
-        upload();
+        // upload();
+    TRAC;
+        setupBuffers(_shader);
     }
 
     // Bind buffers for drawing
@@ -139,27 +155,38 @@ void Vbo::render(Shader* _shader) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
     }
 
+    glBindVertexArray(m_glVao[0]);
+    check(false);
+
     // Enable shader program
-    _shader->use();
+    // _shader->use();
+    TRAC;
+    check(false);
 
     // Enable vertex attribs via vertex layout object
-    m_vertexLayout->enable(_shader);
+    // m_vertexLayout->enable(_shader);
+    check(false);
 
 #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4) && !defined(PLATFORM_WINDOWS)
     if (m_drawMode == GL_POINTS) {
-        glEnable(GL_POINT_SPRITE);
+        // glEnable(GL_POINT_SPRITE);
+        glEnable(34913); // hack, no idea if it works, I don't use point sprites anyway
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     }
 #endif
 
     // Draw as elements or arrays
     if (m_nIndices > 0) {
-        #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+        #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_SHORT, 0);
         #else
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_INT, 0);
         #endif
+        std::cout << "Indices\n";
     } else if (m_nVertices > 0) {
         glDrawArrays(m_drawMode, 0, m_nVertices);
+        std::cout << "Vertices\n";
     }
+    // glDrawArrays(GL_TRIANGLES, 0, 3);
+    // check(false);
 }

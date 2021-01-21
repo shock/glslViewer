@@ -24,14 +24,18 @@
 #elif defined(PLATFORM_OSX)
 #define GL_PROGRAM_BINARY_LENGTH 0x8741
 #include <GLFW/glfw3.h>
-#include <OpenGL/gl.h>
+#include <OpenGL/gl3.h>
 #include <OpenGL/glext.h>
 
 #elif defined(_WIN32)
 #include <GL/glew.h>
 #else
-// ANY LINUX using GLFW 
+// ANY LINUX using GLFW
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
 
 #endif
+
+extern void checkGLError(const char *filename, int line, bool exitOnError);
+#define TRAC std::cerr << "HERE: " << __FILE__ << " " << __LINE__ << "\n"
+#define check(x) checkGLError(__FILE__,__LINE__,x)

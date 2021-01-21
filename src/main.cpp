@@ -18,6 +18,20 @@
 #include "io/osc.h"
 #include "tools/text.h"
 
+void checkGLError(const char *filename, int line, bool exitOnError ) {
+    int gle;
+    bool error = false;
+    do {
+        gle=glGetError();
+        if( gle != 0 ) {
+            error = true;
+            std::cerr << "GLE: " << gle << " " << filename << " " << line << "\n";
+        }
+    } while( gle != 0 );
+    if( error && exitOnError ) {
+        exit(1);
+    }
+}
 // #define DEBUG_LOG
 
 // GLOBAL VARIABLES
@@ -709,6 +723,7 @@ int main(int argc, char **argv){
 
     // Initialize openGL context
     initGL (windowPosAndSize, windowStyle);
+    check(false);
 
     struct stat st;                         // for files to watch
     int         textureCounter  = 0;        // Number of textures to load
@@ -908,6 +923,7 @@ int main(int argc, char **argv){
         osc_listener.m_verbose = true;
     }
 
+    check(false);
     // If no shader
     if ( sandbox.frag_index == -1 && sandbox.vert_index == -1 && sandbox.geom_index == -1 ) {
         printUsage(argv[0]);
@@ -915,25 +931,35 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
 
+    check(false);
     // Start watchers
     fileChanged = -1;
     std::thread fileWatcher( &fileWatcherThread );
     std::thread cinWatcher( &cinWatcherThread );
+    check(false);
 
     // Start working on the GL context
     filesMutex.lock();
     sandbox.setup(files, commands);
     filesMutex.unlock();
+    check(false);
 
     if (sandbox.verbose)
         std::cout << "Starting Render Loop" << std::endl;
 
     // Render Loop
+    check(false);
     while ( isGL() && bRun.load() ) {
+        // TRAC;
         // Update
         updateGL(paused);
+        // TRAC;
+    check(false);
 
+    check(false);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        // TRAC;
+    check(false);
 
         // Something change??
         if ( fileChanged != -1 ) {
@@ -961,22 +987,29 @@ int main(int argc, char **argv){
 
             // Draw Scene
             sandbox.render();
+check(false);
+        // TRAC;
 
             if( frameLimitReached ) {
                 paused = true;
             } else {
                 // Draw Cursor and 2D Debug elements
                 sandbox.renderUI();
+check(false);
             }
+        // TRAC;
 
             // Finish drawing
             sandbox.renderDone();
+        // TRAC;
 
             if ( timeOut && sandbox.screenshotFile == "" )
                 bRun.store(false);
             else
                 // Swap the buffers
                 renderGL();
+check(false);
+        // TRAC;
 
         } else {
             // we're paused, so sleep a lot and just poll for events every so often

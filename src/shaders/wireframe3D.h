@@ -2,27 +2,29 @@
 
 #include <string>
 
-const std::string wireframe3D_vert = R"(
+const std::string wireframe3D_vert = R"(#version 410
 #ifdef GL_ES
 precision mediump float;
 #endif
 
 uniform mat4    u_modelViewProjectionMatrix;
-attribute vec4  a_position;
+in vec4  a_position;
 
 void main(void) {
     gl_Position = u_modelViewProjectionMatrix * a_position;
 }
 )";
 
-const std::string wireframe3D_frag = R"(
+const std::string wireframe3D_frag = R"(#version 410
 #ifdef GL_ES
 precision mediump float;
 #endif
 
 uniform vec4 u_color;
 
+out vec4 out_Color;
+
 void main(void) {
-    gl_FragColor = u_color;
+    out_Color = u_color;
 }
 )";

@@ -2,17 +2,19 @@
 
 #include <string>
 
-const std::string dynamic_billboard_vert = R"(
+const std::string dynamic_billboard_vert = R"(#version 410
 #ifdef GL_ES
 precision mediump float;
 #endif
 
+// default_billboard.h
+
 uniform mat4 u_modelViewProjectionMatrix;
 uniform vec2 u_translate;
 uniform vec2 u_scale;
-attribute vec4 a_position;
-attribute vec2 a_texcoord;
-varying vec2 v_texcoord;
+in vec4 a_position;
+in vec2 a_texcoord;
+out vec2 v_texcoord;
 
 void main(void) {
     vec4 position = a_position;
@@ -22,7 +24,7 @@ void main(void) {
     gl_Position = u_modelViewProjectionMatrix * position;
 })";
 
-const std::string dynamic_billboard_frag = R"(
+const std::string dynamic_billboard_frag = R"(#version 410
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -34,7 +36,7 @@ uniform float u_cameraNearClip;
 uniform float u_cameraFarClip;
 uniform float u_cameraDistance;
 
-varying vec2 v_texcoord;
+in vec2 v_texcoord;
 
 float linearizeDepth(float zoverw) {
 	return (2.0 * u_cameraNearClip) / (u_cameraFarClip + u_cameraNearClip - zoverw * (u_cameraFarClip - u_cameraNearClip));
@@ -45,15 +47,17 @@ vec3 heatmap(float v) {
     return 1.0 - r * r;
 }
 
-void main(void) { 
+out vec4 out_Color;
+
+void main(void) {
     vec4 color = u_color;
     color += texture2D(u_tex0, v_texcoord);
-    
+
     if (u_depth > 0.0) {
         color.r = linearizeDepth(color.r) * u_cameraFarClip;
         color.rgb = heatmap(1.0 - (color.r - u_cameraDistance) * 0.01);
     }
-    
-    gl_FragColor = color;
+
+    out_Color = color;
 }
 )";

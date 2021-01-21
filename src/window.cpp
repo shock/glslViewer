@@ -265,17 +265,17 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
         display = getDisplay();
         assert(display != EGL_NO_DISPLAY);
-        check();
+        check(false);
 
         result = eglInitialize(display, NULL, NULL);
         assert(EGL_FALSE != result);
-        check();
+        check(false);
 
         // Make sure that we can use OpenGL in this EGL app.
         // result = eglBindAPI(EGL_OPENGL_API);
         result = eglBindAPI(EGL_OPENGL_ES_API);
         assert(EGL_FALSE != result);
-        check();
+        check(false);
 
         static const EGLint configAttribs[] = {
             EGL_RED_SIZE, 8,
@@ -357,11 +357,11 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         nativeviewport.width = _viewport.z;
         nativeviewport.height = _viewport.w;
         vc_dispmanx_update_submit_sync( dispman_update );
-        check();
+        check(false);
 
         surface = eglCreateWindowSurface( display, config, &nativeviewport, NULL );
         assert(surface != EGL_NO_SURFACE);
-        check();
+        check(false);
 
         #elif defined(DRIVER_GBM)
         surface = eglCreateWindowSurface(display, config, gbmSurface, NULL);
@@ -378,7 +378,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         // connect the context to the surface
         result = eglMakeCurrent(display, surface, surface, context);
         assert(EGL_FALSE != result);
-        check();
+        check(false);
 
     // GLFW
     #else
@@ -397,6 +397,14 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
         else if (_style == ALLWAYS_ON_TOP)
             glfwWindowHint(GLFW_FLOATING, GL_TRUE);
+
+    #ifdef PLATFORM_OSX
+            // https://gist.github.com/v3n/27e810ac744b076ceeb7
+            glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
+            glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+            glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    #endif
 
         if (_style == FULLSCREEN) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -687,7 +695,7 @@ void renderGL(){
     // NON GLFW
 #if defined(DRIVER_GLFW)
     glfwSwapBuffers(window);
-
+check(false);
 #else
     eglSwapBuffers(display, surface);
     #if defined(DRIVER_GBM)

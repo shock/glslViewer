@@ -12,7 +12,7 @@
 #include "shaders/default_error.h"
 
 Shader::Shader():
-    m_program(0), 
+    m_program(0),
     m_fragmentShader(0),m_vertexShader(0) {
 
     // Adding default defines
@@ -42,6 +42,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
 
     if (!m_vertexShader) {
+        if( error_vert == _vertexSrc ) {
+            std::cerr << "Failed to load error vertex shader.  Exiting with status code 1.\n";
+            exit(1);
+        }
         load(error_frag, error_vert, false);
         return false;
     }
@@ -49,6 +53,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
 
     if (!m_fragmentShader) {
+        if( error_frag == _fragmentSrc ) {
+            std::cerr << "Failed to load error fragment shader.  Exiting with status code 1.\n";
+            exit(1);
+        }
         load(error_frag, error_vert, false);
         return false;
     }
@@ -86,7 +94,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
         glDeleteProgram(m_program);
         load(error_frag, error_vert, false);
         return false;
-    } 
+    }
     else {
         glDeleteShader(m_vertexShader);
         glDeleteShader(m_fragmentShader);
@@ -243,14 +251,15 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
     GLint infoLength = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-    
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
     if (infoLength > 1 && !isCompiled) {
 #else
     if (infoLength > 1) {
 #endif
         std::vector<GLchar> infoLog(infoLength);
         glGetShaderInfoLog(shader, infoLength, NULL, &infoLog[0]);
+        // std::cout << _src;
         std::cerr << (isCompiled ? "Warnings" : "Errors");
         std::cerr << " while compiling ";
         if (_type == GL_FRAGMENT_SHADER) {
@@ -275,13 +284,20 @@ void Shader::detach(GLenum _type) {
     bool frag = (GL_FRAGMENT_SHADER & _type) == GL_FRAGMENT_SHADER;
 
     if (vert) {
+check(false);
         glDeleteShader(m_vertexShader);
+check(false);
         glDetachShader(m_vertexShader, GL_VERTEX_SHADER);
+        glGetError();
+check(false);
     }
 
     if (frag) {
         glDeleteShader(m_fragmentShader);
+check(false);
         glDetachShader(m_fragmentShader, GL_FRAGMENT_SHADER);
+        glGetError();
+check(false);
     }
 }
 

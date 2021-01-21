@@ -48,7 +48,9 @@ void VertexLayout::enable(const Shader* _program) {
         const GLint location = _program->getAttribLocation("a_"+m_attribs[i].name);
         if (location != -1) {
             glEnableVertexAttribArray(location);
+            check(false);
             glVertexAttribPointer(location, m_attribs[i].size, m_attribs[i].type, m_attribs[i].normalized, m_stride, m_attribs[i].offset);
+            check(false);
             s_enabledAttribs[location] = glProgram; // Track currently enabled attribs by the program to which they are bound
         }
     }
