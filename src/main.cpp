@@ -18,6 +18,20 @@
 #include "io/osc.h"
 #include "tools/text.h"
 
+void checkGLError(const char *filename, int line, bool exitOnError ) {
+    int gle;
+    bool error = false;
+    do {
+        gle=glGetError();
+        if( gle != 0 ) {
+            error = true;
+            std::cerr << "GLE: " << gle << " " << filename << " " << line << "\n";
+        }
+    } while( gle != 0 );
+    if( error && exitOnError ) {
+        exit(1);
+    }
+}
 // #define DEBUG_LOG
 
 // GLOBAL VARIABLES

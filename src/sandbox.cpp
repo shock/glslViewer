@@ -412,7 +412,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     },
     "camera_exposure[,<aper.>,<shutter>,<sensit.>]  get or set the camera exposure values."));
 
-    // LOAD SHACER
+    // LOAD SHADER
     // -----------------------------------------------
 
     if (vert_index != -1) {
@@ -944,7 +944,7 @@ void Sandbox::renderUI() {
         }
     }
 
-    if (cursor) {
+    if (cursor && false) {
         if (m_cross_vbo == nullptr)
             m_cross_vbo = cross(glm::vec3(0.0, 0.0, 0.0), 10.).getVbo();
 

@@ -5,7 +5,7 @@
 #include "gl.h"
 #include "vertexLayout.h"
 
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
 #define INDEX_TYPE_GL GLushort
 #else
 #define INDEX_TYPE_GL GLuint
@@ -64,6 +64,7 @@ public:
      */
     void render(Shader* _shader);
     void printInfo();
+    void setupBuffers(Shader* _shader);
 
 private:
 
@@ -76,6 +77,7 @@ private:
     std::vector<INDEX_TYPE_GL> m_indices;
     GLuint  m_glIndexBuffer;
     int     m_nIndices;
+    GLuint  m_glVao[1];
 
     GLenum  m_drawMode;
 

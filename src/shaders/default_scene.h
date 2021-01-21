@@ -7,6 +7,8 @@ const std::string default_scene_vert = R"(
 precision mediump float;
 #endif
 
+// default_scene.h
+
 uniform mat4 u_modelViewProjectionMatrix;
 
 attribute vec4  a_position;
@@ -39,32 +41,32 @@ varying vec4    v_lightCoord;
 #endif
 
 void main(void) {
-    
+
     v_position = a_position;
-    
+
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
 #endif
-    
+
 #ifdef MODEL_VERTEX_NORMAL
     v_normal = a_normal;
 #endif
-    
+
 #ifdef MODEL_VERTEX_TEXCOORD
     v_texcoord = a_texcoord;
 #endif
-    
+
 #ifdef MODEL_VERTEX_TANGENT
     v_tangent = a_tangent;
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
 #endif
-    
+
 #ifdef LIGHT_SHADOWMAP
     v_lightCoord = u_lightMatrix * v_position;
 #endif
-    
+
     gl_Position = u_modelViewProjectionMatrix * v_position;
 }
 )";
@@ -490,7 +492,7 @@ float shadow( const sampler2D map, const vec3 shadowPosition) {
 
 float shadow() {
     return 1.0;
-}    
+}
 
 #endif
 #endif
@@ -591,7 +593,7 @@ uniform sampler2D MATERIAL_BASECOLORMAP;
 
 vec4 materialBaseColor() {
     vec4 base = vec4(1.0);
-    
+
 #if defined(MATERIAL_BASECOLORMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
     #if defined(MATERIAL_BASECOLORMAP_OFFSET)
@@ -728,7 +730,7 @@ vec3 materialNormal() {
 #ifdef MODEL_VERTEX_NORMAL
     normal = v_normal;
 
-    #if defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_NORMALMAP) 
+    #if defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_NORMALMAP)
     vec2 uv = v_texcoord.xy;
         #if defined(MATERIAL_NORMALMAP_OFFSET)
     uv += (MATERIAL_NORMALMAP_OFFSET).xy;
@@ -749,7 +751,7 @@ vec3 materialNormal() {
         #endif
     normal = v_tangentToWorld * (texture2D(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
     #endif
-    
+
 #endif
 
     return normal;
@@ -766,7 +768,7 @@ vec3 materialNormal() {
 #ifndef FNC_TOMETALLIC
 #define FNC_TOMETTALIC
 
-// Gets metallic factor from specular glossiness workflow inputs 
+// Gets metallic factor from specular glossiness workflow inputs
 float toMetallic(vec3 diffuse, vec3 specular, float maxSpecular) {
     float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
     float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
@@ -804,7 +806,7 @@ uniform sampler2D MATERIAL_ROUGHNESSMETALLICMAP;
 #define MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP_UNIFORM
 uniform sampler2D MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP;
 #endif
-    
+
 float materialMetallic() {
     float metallic = 0.0;
 
@@ -933,7 +935,7 @@ struct Material {
     vec4    baseColor;
     vec3    emissive;
     vec3    normal;
-    
+
     vec3    f0;
     float   reflectance;
 
@@ -1399,7 +1401,7 @@ vec3 fresnel(vec3 _R, vec3 _f0, float _NoV) {
 #endif
 
 #ifndef FNC_SPECULAR_PHONG
-#define FNC_SPECULAR_PHONG 
+#define FNC_SPECULAR_PHONG
 
 // https://github.com/glslify/glsl-specular-phong
 float specularPhong(vec3 L, vec3 N, vec3 V, float shininess) {
@@ -1475,7 +1477,7 @@ float specularCookTorrance(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, fl
 
     float x = 2.0 * NoH / VoH;
     float G = min(1.0, min(x * NoV, x * NoL));
-    
+
     //Distribution term
     float D = beckmann(NoH, _roughness);
 
@@ -1647,7 +1649,7 @@ float specular(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #if defined(SPECULAR_GAUSSIAN)
     return specularGaussian(L, N, V, roughness);
-    
+
 #elif defined(SPECULAR_BLECKMANN)
     return specularBeckmann(L, N, V, roughness);
 
@@ -1670,7 +1672,7 @@ float specular(vec3 L, vec3 N, vec3 V, float roughness) {
     #else
     float f0 = 0.04;
     return specularCookTorrance(L, N, V, roughness, f0);
-    #endif  
+    #endif
 
 #endif
 }
@@ -1702,7 +1704,7 @@ float specular(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, fl
     return specularBlinnPhong(L, N, V, shininess);
     #else
     return specularCookTorrance(L, N, V, roughness, fresnel);
-    #endif  
+    #endif
 
 #endif
 }
@@ -1727,7 +1729,7 @@ float diffuseLambert(vec3 L, vec3 N) {
 
 float diffuseOrenNayar(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness) {
     float LoV = dot(L, V);
-    
+
     float s = LoV - NoL * NoV;
     float t = mix(1.0, max(NoL, NoV), step(0.0, s));
 
@@ -1791,7 +1793,7 @@ float diffuse(vec3 L, vec3 N, vec3 V, float roughness) {
 #else
     return diffuseLambert(L, N);
 
-#endif    
+#endif
 }
 
 float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness) {
@@ -1803,7 +1805,7 @@ float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughnes
 
 #else
     return diffuseLambert(_L, _N);
-#endif    
+#endif
 }
 
 #endif
@@ -1834,7 +1836,7 @@ void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float
     float fall = 1.0;
     if (u_lightFalloff > 0.0)
         fall = falloff(length(u_light - v_position.xyz), u_lightFalloff);
-    
+
     _diffuse = u_lightIntensity * (_diffuseColor * u_lightColor * dif * fall);
     _specular = u_lightIntensity * (_specularColor * u_lightColor * spec * fall);
 }
@@ -1874,7 +1876,7 @@ vec4 pbr(const Material _mat) {
     float NoV = dot(N, V);                            // Normal . View
     float f0  = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
     float roughness = _mat.roughness;
-    
+
     // Reflect
     vec3    R = reflection(V, N, roughness);
 
@@ -1883,7 +1885,7 @@ vec4 pbr(const Material _mat) {
     float ssao = 1.0;
 #ifdef SCENE_SSAO
     ssao = texture2D(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
-#endif 
+#endif
     float diffuseAO = min(_mat.ambientOcclusion, ssao);
     float specularAO = specularAO(NoV, diffuseAO, roughness);
 
@@ -1908,7 +1910,7 @@ vec4 pbr(const Material _mat) {
     vec3 lightDiffuse = vec3(0.0);
     vec3 lightSpecular = vec3(0.0);
     lightWithShadow(diffuseColor, specularColor, N, V, NoV, roughness, f0, lightDiffuse, lightSpecular);
-    
+
     // Final Sum
     // ------------------------
     vec4 color = vec4(0.0);
@@ -1927,18 +1929,18 @@ vec4 pbr(const Material _mat) {
 void main(void) {
     Material mat = MaterialInit();
 
-#ifdef FLOOR 
+#ifdef FLOOR
     vec2 st = v_texcoord - 0.5;
     st *= 7.0;
     vec4 t = vec4(  fract(st),
                     floor(st));
     vec2 c = mod(t.zw, 2.0);
     float p = abs(c.x-c.y) * 0.5;
-             
+
     mat.baseColor += p;
     mat.roughness = 0.5 + p * 0.5;
 #endif
-    
+
     gl_FragColor = pbr(mat);
 }
 
