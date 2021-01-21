@@ -420,7 +420,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             exit(-1);
         }
 
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
         glfwMakeContextCurrent(window);
 #ifdef PLATFORM_WINDOWS
