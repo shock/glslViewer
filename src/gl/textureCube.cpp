@@ -414,18 +414,30 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 #else
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    check(false);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    // check(false);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+    // check(false);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    check(false);
 #endif
-    
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-    m_path = _path;             
+    // TRAC;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+check(false);
+    m_path = _path;
     return true;
 }
 
@@ -443,9 +455,9 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
     m_height = int(_width/2);
     int nPixels = m_width * m_height * 3;
 
-    float *data = new float[nPixels]; 
+    float *data = new float[nPixels];
 
-    // FILAMENT SKYGEN 
+    // FILAMENT SKYGEN
     // https://github.com/google/filament/blob/master/tools/skygen/src/main.cpp
     //
     float solarElevation = _skybox->elevation;
@@ -470,9 +482,9 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
         float v = (y + 0.5f) / m_height;
         float theta = float(M_PI * v);
 
-        if (theta > M_PI_2) 
+        if (theta > M_PI_2)
             continue;
-            
+
         for (int x = 0; x < m_width; x++) {
             float u = (x + 0.5f) / m_width;
             float phi = float(-2.0 * M_PI * u + M_PI + _skybox->azimuth);
@@ -527,7 +539,7 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
     // LOAD FACES
     Face<float> **faces = new Face<float>*[6];
     splitFacesFromEquilateral<float>(data, m_width, m_height, faces);
-    
+
     for (int i = 0; i < 6; i++) {
         faces[i]->upload();
         sh_samples += faces[i]->calculateSH(SH);

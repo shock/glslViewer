@@ -90,6 +90,7 @@ struct Face {
     #endif
 
         glTexImage2D(CubeMapFace[id], 0, InternalFormat, width, height, 0, GL_RGB, type, data);
+        check(false);
     }
 
     // By @andsz
