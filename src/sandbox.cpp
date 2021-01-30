@@ -452,7 +452,7 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
 
     // LOAD GEOMETRY
     // -----------------------------------------------
-
+check(false);
     if (geom_index == -1) {
         // m_canvas_shader.addDefine("MODEL_VERTEX_EX_COLORS");
         // m_canvas_shader.addDefine("MODEL_VERTEX_EX_NORMALS");
@@ -467,32 +467,44 @@ void Sandbox::setup( WatchFileList &_files, CommandList &_commands ) {
     // FINISH SCENE SETUP
     // -------------------------------------------------
     uniforms.getCamera().setViewport(getWindowWidth(), getWindowHeight());
+check(false);
 
     // Prepare viewport
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+check(false);
     glClear(GL_COLOR_BUFFER_BIT);
+check(false);
 
     glDisable(GL_DEPTH_TEST);
+check(false);
     glFrontFace(GL_CCW);
+check(false);
 
     // Turn on Alpha blending
     glEnable(GL_BLEND);
+check(false);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+check(false);
 
     // Clear the background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+check(false);
 
     // LOAD SHADERS
     reloadShaders( _files );
+check(false);
 
     // TODO:
     //      - this seams to solve the problem of buffers not properly initialize
     //      - digg deeper
     //
     uniforms.buffers.clear();
+check(false);
     _updateBuffers();
+check(false);
 
     flagChange();
+check(false);
 }
 
 void Sandbox::addDefine(const std::string &_define, const std::string &_value) {
@@ -563,6 +575,7 @@ int Sandbox::getRecordedPercentage() {
 
 bool Sandbox::reloadShaders( WatchFileList &_files ) {
     flagChange();
+check(false);
 
     // UPDATE scene shaders of models (materials)
     if (geom_index == -1) {
@@ -573,12 +586,14 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
         // Reload the shader
         m_canvas_shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
         m_canvas_shader.load(m_frag_source, m_vert_source, verbose);
+check(false);
     }
     else {
         if (verbose)
             std::cout << "// Reload 3D scene shaders" << std::endl;
 
         m_scene.loadShaders(m_frag_source, m_vert_source, verbose);
+check(false);
     }
 
     // UPDATE shaders dependencies
@@ -607,16 +622,22 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
 
     // UPDATE uniforms
     uniforms.checkPresenceIn(m_vert_source, m_frag_source); // Check active native uniforms
+check(false);
     uniforms.flagChange();                                  // Flag all user defined uniforms as changed
+check(false);
 
     if (uniforms.cubemap) {
         addDefine("SCENE_SH_ARRAY", "u_SH");
+check(false);
         addDefine("SCENE_CUBEMAP", "u_cubeMap");
+check(false);
     }
 
     // UPDATE Buffers
     m_buffers_total = count_buffers(m_frag_source);
+check(false);
     _updateBuffers();
+check(false);
 
     // UPDATE Postprocessing
     bool havePostprocessing = check_for_postprocessing(getSource(FRAGMENT));
@@ -634,12 +655,14 @@ bool Sandbox::reloadShaders( WatchFileList &_files ) {
     else
         m_postprocessing = false;
 
+check(false);
     if (m_postprocessing || m_histogram) { //|| uniforms.functions["u_scene"].present) {
         FboType type = uniforms.functions["u_sceneDepth"].present ? COLOR_DEPTH_TEXTURES : COLOR_TEXTURE_DEPTH_BUFFER;
         if (!m_scene_fbo.isAllocated() || m_scene_fbo.getType() != type)
             m_scene_fbo.allocate(getWindowWidth(), getWindowHeight(), type);
     }
 
+check(false);
     return true;
 }
 
@@ -702,6 +725,7 @@ void Sandbox::_renderBuffers() {
 }
 
 void Sandbox::render() {
+    check(false);
     // RENDER SHADOW MAP
     // -----------------------------------------------
     if (geom_index != -1)
@@ -732,6 +756,7 @@ void Sandbox::render() {
 
     // Clear the background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    check(false);
 
     // RENDER CONTENT
     if (geom_index == -1) {
@@ -803,6 +828,7 @@ void Sandbox::render() {
         m_billboard_shader.setUniformTexture("u_tex0", &m_record_fbo, 0);
         m_billboard_vbo->render( &m_billboard_shader );
     }
+    check(false);
     frameNumber++;
 }
 

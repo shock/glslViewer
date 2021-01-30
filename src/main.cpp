@@ -723,6 +723,7 @@ int main(int argc, char **argv){
 
     // Initialize openGL context
     initGL (windowPosAndSize, windowStyle);
+    check(false);
 
     struct stat st;                         // for files to watch
     int         textureCounter  = 0;        // Number of textures to load
@@ -863,7 +864,9 @@ int main(int argc, char **argv){
             {
                 argument = std::string(argv[i]);
                 sandbox.uniforms.setCubeMap(argument, files);
+                check(false);
                 sandbox.getScene().showCubebox = true;
+                check(false);
             }
             else
                 std::cout << "Argument '" << argument << "' should be followed by a <environmental_map>. Skipping argument." << std::endl;
@@ -937,18 +940,21 @@ int main(int argc, char **argv){
     // Start working on the GL context
     filesMutex.lock();
     sandbox.setup(files, commands);
+    check(false);
     filesMutex.unlock();
 
     if (sandbox.verbose)
         std::cout << "Starting Render Loop" << std::endl;
 
     // Render Loop
+    check(false);
     while ( isGL() && bRun.load() ) {
         // Update
+        check(false);
         updateGL(paused);
-
+        check(false);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
+        check(false);
         // Something change??
         if ( fileChanged != -1 ) {
             filesMutex.lock();
@@ -974,28 +980,36 @@ int main(int argc, char **argv){
         if( !paused ) {
 
             // Draw Scene
+            // TRAC;
+            check(false);
             sandbox.render();
+            check(false);
 
             if( frameLimitReached ) {
                 paused = true;
             } else {
                 // Draw Cursor and 2D Debug elements
                 sandbox.renderUI();
+                check(false);
             }
 
             // Finish drawing
             sandbox.renderDone();
+            check(false);
 
             if ( timeOut && sandbox.screenshotFile == "" )
                 bRun.store(false);
-            else
+            else {
                 // Swap the buffers
                 renderGL();
+                check(false);
+            }
 
         } else {
             // we're paused, so sleep a lot and just poll for events every so often
             pal_sleep( 200000 ); // 200 ms
         }
+        check(false);
     }
 
     // If is terminated by the windows manager, turn bRun off so the fileWatcher can stop

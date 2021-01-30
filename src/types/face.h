@@ -13,10 +13,10 @@
 #define M_RPI 0.31830988618379067153f
 #endif
 
-const GLenum CubeMapFace[6] { 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z 
+const GLenum CubeMapFace[6] {
+    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
 };
 
 const glm::vec3 skyDir[] = {
@@ -35,7 +35,7 @@ const glm::vec3 skyY[] = {
     glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)
 };
 
-template <typename T> 
+template <typename T>
 struct Face {
 
     void flipHorizontal() {
@@ -80,8 +80,8 @@ struct Face {
         if (sizeof(T) == sizeof(char)) {
             type = GL_UNSIGNED_BYTE;
         }
-        
-    #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+
+    #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         GLenum InternalFormat = GL_RGB;
     #elif defined (PLATFORM_WINDOWS)
         GLenum InternalFormat = GL_RGB16F;
@@ -107,11 +107,11 @@ struct Face {
                     skyDir[id]); // texelDirection;
                 float l = glm::length(n);
                 glm::vec3 c_light = glm::vec3((float)p[0], (float)p[1], (float)p[2]);
-                
+
                 if (sizeof(T) == sizeof(char)) {
                     c_light = c_light / 255.0f;
                 }
-                    
+
                 c_light = c_light * l * l * l; // texelSolidAngle * texel_radiance;
                 n = glm::normalize(n);
                 _sh[0] += (c_light * 0.282095f);
@@ -212,11 +212,11 @@ static inline void latLongFromVec(float& _u, float& _v, const float _vec[3]) {
     _v = theta * M_RPI;
 }
 
-static inline uint32_t ftou(float _f) { 
-    return uint32_t(int32_t(_f)); 
+static inline uint32_t ftou(float _f) {
+    return uint32_t(int32_t(_f));
 }
 
-template <typename T> 
+template <typename T>
 inline void vec3Mul(T* __restrict _result, const T* __restrict _a, float _b) {
 	_result[0] = _a[0] * _b;
 	_result[1] = _a[1] * _b;

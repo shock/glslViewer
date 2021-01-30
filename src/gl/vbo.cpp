@@ -135,18 +135,22 @@ void Vbo::render(Shader* _shader) {
     // Ensure that geometry is buffered into GPU
     if (!m_isUploaded) {
         setupBuffers(_shader);
+        check(false);
     }
 
     // Bind buffers for drawing
     if (m_nVertices > 0) {
         glBindBuffer(GL_ARRAY_BUFFER, m_glVertexBuffer);
+        check(false);
     }
 
     if (m_nIndices > 0) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
+        check(false);
     }
 
     glBindVertexArray(m_glVao[0]);
+    check(false);
 
 #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4) && !defined(PLATFORM_WINDOWS)
     if (m_drawMode == GL_POINTS) {
@@ -160,10 +164,13 @@ void Vbo::render(Shader* _shader) {
     if (m_nIndices > 0) {
         #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_SHORT, 0);
+        check(false);
         #else
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_INT, 0);
+        check(false);
         #endif
     } else if (m_nVertices > 0) {
         glDrawArrays(m_drawMode, 0, m_nVertices);
+        check(false);
     }
 }

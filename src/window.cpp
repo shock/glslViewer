@@ -254,6 +254,23 @@ static EGLDisplay getDisplay() {
 }
 #endif
 
+#define GL_DEBUG_TYPE_ERROR 0x824C
+#define GL_DEBUG_OUTPUT 0x92E0
+
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
 void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
     // NON GLFW
@@ -398,7 +415,12 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
             glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
             glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // During init, enable debug output
+        // glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+
     #endif
+
 
         if (_style == FULLSCREEN) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -419,6 +441,8 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             std::cerr << "ABORT: GLFW create window failed" << std::endl;
             exit(-1);
         }
+
+        // glDebugMessageCallback( MessageCallback, 0 );
 
         // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 

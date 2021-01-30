@@ -40,32 +40,36 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     m_defineChange = false;
 
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
-
+check(false);
     if (!m_vertexShader) {
         if( error_vert == _vertexSrc ) {
             std::cerr << "Failed to load error vertex shader.  Exiting with status code 1.\n";
             exit(1);
         }
         load(error_frag, error_vert, false);
+check(false);
         return false;
     }
 
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
-
+check(false);
     if (!m_fragmentShader) {
         if( error_frag == _fragmentSrc ) {
             std::cerr << "Failed to load error fragment shader.  Exiting with status code 1.\n";
             exit(1);
         }
         load(error_frag, error_vert, false);
-        return false;
+check(false);        return false;
     }
 
     m_program = glCreateProgram();
-
+check(false);
     glAttachShader(m_program, m_vertexShader);
+check(false);
     glAttachShader(m_program, m_fragmentShader);
+check(false);
     glLinkProgram(m_program);
+check(false);
 
     m_fragmentSource = _fragmentSrc;
     m_vertexSource = _vertexSrc;
@@ -75,10 +79,12 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
     GLint isLinked;
     glGetProgramiv(m_program, GL_LINK_STATUS, &isLinked);
+check(false);
 
     if (isLinked == GL_FALSE) {
         GLint infoLength = 0;
         glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLength);
+check(false);
         if (infoLength > 1) {
             std::vector<GLchar> infoLog(infoLength);
             glGetProgramInfoLog(m_program, infoLength, NULL, &infoLog[0]);
@@ -92,12 +98,15 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
         glDeleteProgram(m_program);
+check(false);
         load(error_frag, error_vert, false);
         return false;
     }
     else {
         glDeleteShader(m_vertexShader);
+check(false);
         glDeleteShader(m_fragmentShader);
+check(false);
 
         if (_verbose) {
             std::cerr << "shader load time: " << load_time.count() << "s";
@@ -108,8 +117,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
                 std::cerr << " size: " << proglen;
 #endif
 #ifdef GL_PROGRAM_INSTRUCTIONS_ARB
+// TRAC;
             GLint icount = 0;
-            glGetProgramivARB(m_program, GL_PROGRAM_INSTRUCTIONS_ARB, &icount);
+            // glGetProgramivARB(m_program, GL_PROGRAM_INSTRUCTIONS_ARB, &icount);
+check(false);
             if (icount > 0)
                 std::cerr << " #instructions: " << icount;
 #endif
@@ -129,7 +140,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 
 void Shader::use() {
     textureIndex = 0;
-
+    // TRAC;
     if (m_defineChange)
         reload(false);
 
@@ -421,16 +432,24 @@ void Shader::setUniform(const std::string& _name, const glm::vec4 *_array, unsig
 
 void Shader::setUniformTextureCube(const std::string& _name, const TextureCube* _tex, unsigned int _texLoc) {
     if (isInUse()) {
+        // TRAC;
         glActiveTexture(GL_TEXTURE0 + _texLoc);
+        // std::cout << "cubemap texture location " << _texLoc << "\n";
+        check(false);
         glBindTexture(GL_TEXTURE_CUBE_MAP, _tex->getId());
+        // std::cout << _tex->getId() << "\n";
+        check(false);
         glUniform1i(getUniformLocation(_name), _texLoc);
+        check(false);
     }
 }
 
 void Shader::setUniformTexture(const std::string& _name, const Texture* _tex, unsigned int _texLoc) {
     if (isInUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
+        // std::cout << "2D texture location " << _texLoc << "\n";
         glBindTexture(GL_TEXTURE_2D, _tex->getId());
+        // std::cout << _tex->getId() << "\n";
         glUniform1i(getUniformLocation(_name), _texLoc);
     }
 }
