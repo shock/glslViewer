@@ -430,6 +430,8 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     // check(false);
     // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
     // check(false);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    check(false);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     check(false);
 #endif
