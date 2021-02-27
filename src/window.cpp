@@ -455,7 +455,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         });
 
         glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
-            onKeyPress(_key);
+            if( _action == GLFW_PRESS ) onKeyPress(_key);
         });
 
         // callback when a mouse button is pressed or released
@@ -549,11 +549,13 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             }
         });
 
-        glfwSwapInterval(1);
+        glfwSwapInterval(2);
 
         if (_viewport.x > 0 || _viewport.y > 0) {
             glfwSetWindowPos(window, _viewport.x, _viewport.y);
         }
+
+        resetTime();
     #endif
     setViewport(_viewport.z,_viewport.w);
 }
@@ -589,11 +591,15 @@ void debounceSetWindowTitle(std::string title){
 #endif
 
 void fastForwardTime( double amount ) {
-    timeOffset += amount;
+    timeOffset -= amount;
 }
 
 void rewindTime( double amount ) {
-    timeOffset -= amount;
+    timeOffset += amount;
+}
+
+void resetTime() {
+    timeOffset = fTime;
 }
 
 double prevTime = 0.0f;
@@ -626,7 +632,7 @@ void updateGL( bool paused ){
         pTime = now - fTime;
     }
 
-    // fTime = fTime + timeOffset;
+    // fTime = fTime - timeOffset;
     // if( fTime < 0.0f ) { fTime =0.0f; }
 
     static int frame_count = 0;
@@ -863,7 +869,7 @@ glm::vec4 getDate() {
 }
 
 double getTime() {
-    return fTime;
+    return  fTime - timeOffset;
 }
 
 double getDelta() {

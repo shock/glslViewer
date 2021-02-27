@@ -1034,7 +1034,7 @@ int main(int argc, char **argv){
 // Events
 //============================================================================
 void onKeyPress (int _key) {
-    // std::cout << _key << "\n";
+    std::cout << _key << "\n";
     if (screensaver) {
         bRun = false;
         bRun.store(false);
@@ -1052,6 +1052,9 @@ void onKeyPress (int _key) {
         } else if ( _key == 262 ) {
             allowRefresh();
             fastForwardTime( 1.0f );
+        } else if ( _key == 264 ) {
+            allowRefresh();
+            resetTime();
         } else if ( _key < 128 ) {
             unpause();
             singleFrame = false;

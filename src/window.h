@@ -19,6 +19,7 @@ void initGL(glm::ivec4 &_viewport, WindowStyle _prop = REGULAR);
 bool isGL();
 void fastForwardTime( double amount );
 void rewindTime( double amount );
+void resetTime();
 void updateGL(bool paused);
 void renderGL();
 void closeGL();
