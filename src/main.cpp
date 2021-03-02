@@ -1034,7 +1034,7 @@ int main(int argc, char **argv){
 // Events
 //============================================================================
 void onKeyPress (int _key) {
-    std::cout << _key << "\n";
+    // std::cout << _key << "\n";
     if (screensaver) {
         bRun = false;
         bRun.store(false);
