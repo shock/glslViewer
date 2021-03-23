@@ -455,7 +455,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         });
 
         glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
-            if( _action == GLFW_PRESS || _action == GLFW_REPEAT ) onKeyPress(_key);
+            if( _action == GLFW_PRESS || _action == GLFW_REPEAT ) onKeyPress(_key, _mods);
         });
 
         // callback when a mouse button is pressed or released
@@ -611,12 +611,12 @@ void updateGL( bool paused ){
     #if defined(DRIVER_GLFW)
         double now = glfwGetTime();
 
-        // Fix the FPS to a max of 60fps (REST_SEC)
-        float diff = now - fTime;
-        if (diff < REST_SEC) {
-            pal_sleep(int((REST_SEC - diff) * 1000000));
-            now = glfwGetTime();
-        }
+        // // Fix the FPS to a max of 60fps (REST_SEC)
+        // float diff = now - fTime;
+        // if (diff < REST_SEC) {
+        //     pal_sleep(int((REST_SEC - diff) * 1000000));
+        //     now = glfwGetTime();
+        // }
 
     #else
         // NON GLFW (VC or GBM)
@@ -648,7 +648,11 @@ void updateGL( bool paused ){
     // EVENTS
     // --------------------------------------------------------------------
         #if defined(DRIVER_GLFW)
-        std::string title = appTitle + ":..: FPS:" + toString(fFPS);
+        int time = int(getTime() * 100);
+        std::string title = appTitle;
+        title += " - " + toString(viewport.z) + "x" + toString(viewport.w);
+        title += " - FPS:" + toString(fFPS);
+        title += " - " + toString(float(time)/100) + "s";
         debounceSetWindowTitle(title);
         glfwPollEvents();
 

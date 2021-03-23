@@ -57,7 +57,7 @@ glm::vec4 getMouse4();
 
 // EVENTS
 //----------------------------------------------
-void onKeyPress(int _key);
+void onKeyPress(int _key, int _mods);
 void onMouseMove(float _x, float _y);
 void onMouseClick(float _x, float _y, int _button);
 void onMouseDrag(float _x, float _y, int _button);

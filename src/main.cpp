@@ -634,6 +634,12 @@ void doPause() {
     // maxFrames = 10;
 }
 
+void togglePause() {
+    if( paused == true ) { unpause(); singleFrame = false; }
+    else doPause();
+    // maxFrames = 10;
+}
+
 // Main program
 //============================================================================
 int main(int argc, char **argv){
@@ -951,7 +957,7 @@ int main(int argc, char **argv){
     while ( isGL() && bRun.load() ) {
         // Update
         check(false);
-        updateGL(paused);
+        updateGL(singleFrame);
         check(false);
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         check(false);
@@ -1033,8 +1039,10 @@ int main(int argc, char **argv){
 
 // Events
 //============================================================================
-void onKeyPress (int _key) {
-    // std::cout << _key << "\n";
+void onKeyPress (int _key, int _mods) {
+    std::cout << _key << "\n";
+    float delta = 1.0f;
+    if( _mods & GLFW_MOD_SHIFT ) delta = 0.1f;
     if (screensaver) {
         bRun = false;
         bRun.store(false);
@@ -1046,12 +1054,14 @@ void onKeyPress (int _key) {
         }
         if (_key == '`' ) {
             doPause();
+        } else if ( _key == 265 ) {
+            togglePause();
         } else if ( _key == 263 ) {
             allowRefresh();
-            rewindTime( 1.0f );
+            rewindTime( delta );
         } else if ( _key == 262 ) {
             allowRefresh();
-            fastForwardTime( 1.0f );
+            fastForwardTime( delta );
         } else if ( _key == 264 ) {
             allowRefresh();
             resetTime();
