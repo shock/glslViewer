@@ -219,7 +219,8 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
     } else {
         // no #version directive found at the beginning of _src, which means...
         srcBody = _src; // ... _src contains the whole shader body and ...
-        zeroBasedLineDirective = true; // ... glsl defaults to version 1.10, which starts numbering #line directives from 0.
+        prolog += "#version 410\n";
+        zeroBasedLineDirective = false;
     }
 
     for(DefinesList_it it = m_defines.begin(); it != m_defines.end(); it++) {

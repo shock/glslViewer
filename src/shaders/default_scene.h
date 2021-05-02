@@ -2,7 +2,7 @@
 
 // DEFAULT SHADERS
 // -----------------------------------------------------
-const std::string default_scene_vert = R"(
+const std::string default_scene_vert = R"(#version 410 core
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -11,33 +11,33 @@ precision mediump float;
 
 uniform mat4 u_modelViewProjectionMatrix;
 
-attribute vec4  a_position;
-varying vec4    v_position;
+in vec4  a_position;
+out vec4    v_position;
 
 #ifdef MODEL_VERTEX_COLOR
-attribute vec4  a_color;
-varying vec4    v_color;
+in vec4  a_color;
+out vec4    v_color;
 #endif
 
 #ifdef MODEL_VERTEX_NORMAL
-attribute vec3  a_normal;
-varying vec3    v_normal;
+in vec3  a_normal;
+out vec3    v_normal;
 #endif
 
 #ifdef MODEL_VERTEX_TEXCOORD
-attribute vec2  a_texcoord;
-varying vec2    v_texcoord;
+in vec2  a_texcoord;
+out vec2    v_texcoord;
 #endif
 
 #ifdef MODEL_VERTEX_TANGENT
-attribute vec4  a_tangent;
-varying vec4    v_tangent;
-varying mat3    v_tangentToWorld;
+in vec4  a_tangent;
+out vec4    v_tangent;
+out mat3    v_tangentToWorld;
 #endif
 
 #ifdef LIGHT_SHADOWMAP
 uniform mat4    u_lightMatrix;
-varying vec4    v_lightCoord;
+out vec4    v_lightCoord;
 #endif
 
 void main(void) {
@@ -80,23 +80,23 @@ precision mediump float;
 uniform vec3    u_camera;
 uniform vec2    u_resolution;
 
-varying vec4    v_position;
+out vec4    v_position;
 
 #ifdef MODEL_VERTEX_COLOR
-varying vec4    v_color;
+out vec4    v_color;
 #endif
 
 #ifdef MODEL_VERTEX_NORMAL
-varying vec3    v_normal;
+out vec3    v_normal;
 #endif
 
 #ifdef MODEL_VERTEX_TEXCOORD
-varying vec2    v_texcoord;
+out vec2    v_texcoord;
 #endif
 
 #ifdef MODEL_VERTEX_TANGENT
-varying mat3    v_tangentToWorld;
-varying vec4    v_tangent;
+out mat3    v_tangentToWorld;
+out vec4    v_tangent;
 #endif
 
 // #define MATERIAL_ANISOTROPY 0.9
@@ -177,7 +177,7 @@ uniform float       u_lightIntensity;
 #ifdef LIGHT_SHADOWMAP
 uniform sampler2D   u_lightShadowMap;
 uniform mat4        u_lightMatrix;
-varying vec4        v_lightCoord;
+out vec4        v_lightCoord;
 #endif
 
 #endif
