@@ -39,6 +39,7 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     start_time = std::chrono::steady_clock::now();
     m_defineChange = false;
 
+check(false);
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
 check(false);
     if (!m_vertexShader) {
@@ -51,6 +52,7 @@ check(false);
         return false;
     }
 
+check(false);
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
 check(false);
     if (!m_fragmentShader) {
@@ -88,6 +90,7 @@ check(false);
         if (infoLength > 1) {
             std::vector<GLchar> infoLog(infoLength);
             glGetProgramInfoLog(m_program, infoLength, NULL, &infoLog[0]);
+check(false);
             std::string error(infoLog.begin(),infoLog.end());
             // printf("Error linking shader:\n%s\n", error);
             std::cerr << "Error linking shader: " << error << std::endl;
@@ -159,6 +162,7 @@ bool Shader::isLoaded() const {
 }
 
 GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbose) {
+check(false);
     std::string prolog = "";
 
     //
@@ -238,31 +242,40 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
     size_t startLine = (srcVersionFound ? 1 : 0) + (zeroBasedLineDirective ? 0 : 1);
     prolog += "#line " + std::to_string(startLine) + "\n";
 
-    // if (_verbose) {
-    //     if (_type == GL_VERTEX_SHADER) {
-    //         std::cout << "// ---------- Vertex Shader" << std::endl;
-    //     }
-    //     else {
-    //         std::cout << "// ---------- Fragment Shader" << std::endl;
-    //     }
-    //     std::cout << prolog << std::endl;
-    //     std::cout << srcBody << std::endl;
-    // }
+    if (_verbose) {
+        if (_type == GL_VERTEX_SHADER) {
+            std::cout << "// ---------- Vertex Shader" << std::endl;
+        }
+        else if (_type == GL_FRAGMENT_SHADER) {
+            std::cout << "// ---------- Fragment Shader" << std::endl;
+        }
+        else {
+            std::cout << "// ---------- ?? Shader" << std::endl;
+        }
+        // std::cout << prolog << std::endl;
+        // std::cout << srcBody << std::endl;
+    }
 
     const GLchar* sources[2] = {
         (const GLchar*) prolog.c_str(),
         (const GLchar*) srcBody.c_str()
     };
 
+check(false);
     GLuint shader = glCreateShader(_type);
+    check(false);
     glShaderSource(shader, 2, sources, NULL);
+    check(false);
     glCompileShader(shader);
+    check(false);
 
     GLint isCompiled;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+    check(false);
 
     GLint infoLength = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
+    check(false);
 
 #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
     if (infoLength > 1 && !isCompiled) {
@@ -271,6 +284,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 #endif
         std::vector<GLchar> infoLog(infoLength);
         glGetShaderInfoLog(shader, infoLength, NULL, &infoLog[0]);
+    check(false);
         std::cerr << (isCompiled ? "Warnings" : "Errors");
         std::cerr << " while compiling ";
         if (_type == GL_FRAGMENT_SHADER) {
@@ -284,6 +298,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
     if (isCompiled == GL_FALSE) {
         glDeleteShader(shader);
+    check(false);
         return 0;
     }
 

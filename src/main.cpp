@@ -1065,6 +1065,7 @@ void onKeyPress (int _key, int _mods) {
         } else if ( _key == 264 ) {
             allowRefresh();
             resetTime();
+            sandbox.frameNumber = 0;
         } else if ( _key < 128 ) {
             unpause();
             singleFrame = false;
