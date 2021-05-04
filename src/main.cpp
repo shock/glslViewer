@@ -73,6 +73,7 @@ bool screensaver = false;
 bool paused = false;
 bool singleFrame = false;
 int maxFrames = -1;
+bool vsyncOn = true;
 
 // Here is where all the magic happens
 Sandbox sandbox;
@@ -126,6 +127,7 @@ void printUsage(char * executableName) {
     std::cerr << "// [-v/--version] - return glslViewer version" << std::endl;
     std::cerr << "// [-s/--single] - run in single frame mode.  Window buffer is rendered only once when files change." << std::endl;
     std::cerr << "// [-fl <frames>] - renders <frames> frames, then pauses until files change" << std::endl;
+    std::cerr << "// [-nv/--no-vsync] - disable vertical sync on frame buffer swaps (useful for iterative renders)" << std::endl;
     std::cerr << "// [--verbose] - turn verbose outputs on" << std::endl;
     std::cerr << "// [--help] - print help for one or all command" << std::endl;
 }
@@ -728,7 +730,7 @@ int main(int argc, char **argv){
     declareCommands();
 
     // Initialize openGL context
-    initGL (windowPosAndSize, windowStyle);
+    initGL (windowPosAndSize, windowStyle, true);
     check(false);
 
     struct stat st;                         // for files to watch
@@ -770,6 +772,11 @@ int main(int argc, char **argv){
                 maxFrames = toInt(std::string(argv[i]));
             else
                 std::cout << "Argument '" << argument << "' should be followed by a number. Skipping argument." << std::endl;
+        }
+        else if ( argument== "-nv" || argument == "--no-vsync" ) {
+            std::cout << "Disabling vertical sync" << std::endl;
+            vsyncOn = false;
+            setVsync( false );
         }
         else if ( argument == "-e" ) {
             if(++i < argc)
@@ -1054,21 +1061,18 @@ void onKeyPress (int _key, int _mods) {
         }
         if (_key == '`' ) {
             doPause();
-        } else if ( _key == 265 ) {
+        } else if ( _key == 265 ) { // up arrow
             togglePause();
-        } else if ( _key == 263 ) {
+        } else if ( _key == 263 ) { // left arrow
             allowRefresh();
             rewindTime( delta );
-        } else if ( _key == 262 ) {
+        } else if ( _key == 262 ) { // right arrow
             allowRefresh();
             fastForwardTime( delta );
-        } else if ( _key == 264 ) {
+        } else if ( _key == 264 ) { // down arrow
             allowRefresh();
             resetTime();
             sandbox.frameNumber = 0;
-        } else if ( _key < 128 ) {
-            unpause();
-            singleFrame = false;
         }
     }
 }

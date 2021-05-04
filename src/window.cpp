@@ -33,7 +33,6 @@ static double timeOffset = 0.0f;
 static double fDelta = 0.0f;
 static double fFPS = 0.0f;
 static float fPixelDensity = 1.0;
-
 extern void pal_sleep(uint64_t);
 
 #if defined(DRIVER_GLFW)
@@ -271,7 +270,7 @@ MessageCallback( GLenum source,
             type, severity, message );
 }
 
-void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
+void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
 
     // NON GLFW
     #if !defined(DRIVER_GLFW)
@@ -549,7 +548,8 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             }
         });
 
-        glfwSwapInterval(2);
+        // default to vsync enabled
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
 
         if (_viewport.x > 0 || _viewport.y > 0) {
             glfwSetWindowPos(window, _viewport.x, _viewport.y);
@@ -558,6 +558,14 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         resetTime();
     #endif
     setViewport(_viewport.z,_viewport.w);
+}
+
+void setVsync(bool on) {
+    if( on ) {
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
+    } else {
+        glfwSwapInterval(0);
+    }
 }
 
 bool isGL(){
