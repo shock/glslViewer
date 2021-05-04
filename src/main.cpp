@@ -620,7 +620,7 @@ void declareCommands() {
 
 void unpause() {
     paused = false;
-    sandbox.frameNumber = 0;
+    // sandbox.frameNumber = 0;
     maxFrames = -1;
 }
 
