@@ -71,6 +71,7 @@ bool fullFps = false;
 bool timeOut = false;
 bool screensaver = false;
 bool paused = false;
+bool inputLocked = false;
 bool singleFrame = false;
 int maxFrames = -1;
 bool vsyncOn = true;
@@ -622,13 +623,15 @@ void declareCommands() {
 
 void unpause() {
     paused = false;
-    // sandbox.frameNumber = 0;
     maxFrames = -1;
 }
 
 void allowRefresh() {
     paused = false;
     sandbox.frameNumber = 0;
+    if( !vsyncOn ) {
+        resetTime();
+    }
 }
 
 void doPause() {
@@ -768,8 +771,11 @@ int main(int argc, char **argv){
                 std::cout << "Argument '" << argument << "' should be followed by an <osc_port>. Skipping argument." << std::endl;
         }
         else if ( argument== "-fl" || argument == "--framelimit" ) {
-            if(++i < argc)
+            if(++i < argc) {
                 maxFrames = toInt(std::string(argv[i]));
+                vsyncOn = false;
+                setVsync( false );
+            }
             else
                 std::cout << "Argument '" << argument << "' should be followed by a number. Skipping argument." << std::endl;
         }
@@ -969,7 +975,7 @@ int main(int argc, char **argv){
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         check(false);
         // Something change??
-        if ( fileChanged != -1 ) {
+        if ( fileChanged != -1 && !inputLocked ) {
             filesMutex.lock();
             sandbox.onFileChange( files, fileChanged );
             fileChanged = -1;
@@ -1047,7 +1053,7 @@ int main(int argc, char **argv){
 // Events
 //============================================================================
 void onKeyPress (int _key, int _mods) {
-    std::cout << _key << "\n";
+    // std::cout << _key << "\n";
     float delta = 1.0f;
     if( _mods & GLFW_MOD_SHIFT ) delta = 0.1f;
     if (screensaver) {
@@ -1055,24 +1061,33 @@ void onKeyPress (int _key, int _mods) {
         bRun.store(false);
     }
     else {
-        if (_key == 'q' || _key == 'Q') {
-            bRun = false;
-            bRun.store(false);
+        if( (_mods & GLFW_MOD_SHIFT) && _key == 'U' ) {
+            inputLocked = false;
+            std::cout << "INPUT UNLOCKED\n";
         }
-        if (_key == '`' ) {
-            doPause();
-        } else if ( _key == 265 ) { // up arrow
-            togglePause();
-        } else if ( _key == 263 ) { // left arrow
-            allowRefresh();
-            rewindTime( delta );
-        } else if ( _key == 262 ) { // right arrow
-            allowRefresh();
-            fastForwardTime( delta );
-        } else if ( _key == 264 ) { // down arrow
-            allowRefresh();
-            resetTime();
-            sandbox.frameNumber = 0;
+        if( !inputLocked ) {
+            if( (_mods & GLFW_MOD_SHIFT) && _key == 'L' ) {
+                inputLocked = true;
+                std::cout << "INPUT LOCKED\n";
+            }
+            if ( (_mods & GLFW_MOD_SHIFT) && _key == 'Q' ) { // SHIFT-Q
+                bRun = false;
+                bRun.store(false);
+            }
+            if (_key == '`' ) {
+                doPause();
+            } else if ( _key == 265 ) { // up arrow
+                togglePause();
+            } else if ( _key == 263 ) { // left arrow
+                allowRefresh();
+                rewindTime( delta );
+            } else if ( _key == 262 ) { // right arrow
+                allowRefresh();
+                fastForwardTime( delta );
+            } else if ( _key == 264 ) { // down arrow
+                allowRefresh();
+                resetTime();
+            }
         }
     }
 }
@@ -1098,6 +1113,11 @@ void onMouseDrag(float _x, float _y, int _button) {
 }
 
 void onViewportResize(int _newWidth, int _newHeight) {
+    if( inputLocked ) {
+        if (sandbox.verbose) std::cout << "INPUT LOCKED - onViewportResize ignored\n";
+        return;
+    }
+    std::cout << "onViewportResize " << _newWidth << " x " << _newHeight << "\n";
     allowRefresh();
     sandbox.onViewportResize(_newWidth, _newHeight);
 }
@@ -1161,6 +1181,10 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
 
     // If nothing match maybe the user is trying to define the content of a uniform
     if (!resolve) {
+        if( inputLocked ) {
+            if (sandbox.verbose) std::cout << "INPUT LOCKED - uniform command parsing skipped\n";
+            return;
+        }
         _mutex.lock();
         somethingChanged = sandbox.uniforms.parseLine(_cmd);
 #ifdef DEBUG_LOG

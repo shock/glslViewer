@@ -56,6 +56,12 @@ glm::vec2 getMouseVelocity();
 int getMouseButton();
 glm::vec4 getMouse4();
 
+
+// From main.cpp
+
+extern bool inputLocked;
+
+
 // EVENTS
 //----------------------------------------------
 void onKeyPress(int _key, int _mods);

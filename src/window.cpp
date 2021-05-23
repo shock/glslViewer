@@ -450,6 +450,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
         glewInit();
 #endif//
         glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
+            TRAC;
             setViewport(_w,_h);
         });
 
@@ -543,7 +544,9 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
         });
 
         glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
+            TRAC;
             if (fPixelDensity != getPixelDensity()) {
+            TRAC;
                 updateViewport();
             }
         });
@@ -775,16 +778,23 @@ void updateViewport() {
     orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity,
                                 (float)viewport.y * fPixelDensity, (float)viewport.w * fPixelDensity);
 
+    TRAC;
     onViewportResize(getWindowWidth(), getWindowHeight());
 }
 
 void setViewport(float _width, float _height) {
+    if( inputLocked ) {
+        std::cout << "Warning INPUT LOCKED - skipping setViewport\n";
+        return;
+    }
     viewport.z = _width;
     viewport.w = _height;
+    TRAC;
     updateViewport();
 }
 
 void setWindowSize(int _width, int _height) {
+    TRAC;
 #if defined(DRIVER_GLFW)
     glfwSetWindowSize(window, _width, _height);
 #endif
