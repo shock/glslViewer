@@ -1117,7 +1117,7 @@ void onViewportResize(int _newWidth, int _newHeight) {
         if (sandbox.verbose) std::cout << "INPUT LOCKED - onViewportResize ignored\n";
         return;
     }
-    std::cout << "onViewportResize " << _newWidth << " x " << _newHeight << "\n";
+    // std::cout << "onViewportResize " << _newWidth << " x " << _newHeight << "\n";
     allowRefresh();
     sandbox.onViewportResize(_newWidth, _newHeight);
 }

@@ -544,9 +544,9 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
         });
 
         glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
-            TRAC;
+            // TRAC;
             if (fPixelDensity != getPixelDensity()) {
-            TRAC;
+            // TRAC;
                 updateViewport();
             }
         });
@@ -778,7 +778,7 @@ void updateViewport() {
     orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity,
                                 (float)viewport.y * fPixelDensity, (float)viewport.w * fPixelDensity);
 
-    TRAC;
+    // TRAC;
     onViewportResize(getWindowWidth(), getWindowHeight());
 }
 
@@ -789,7 +789,7 @@ void setViewport(float _width, float _height) {
     }
     viewport.z = _width;
     viewport.w = _height;
-    TRAC;
+    // TRAC;
     updateViewport();
 }
 
