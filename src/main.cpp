@@ -1061,6 +1061,11 @@ void onKeyPress (int _key, int _mods) {
         bRun.store(false);
     }
     else {
+        if( (_mods & GLFW_MOD_SHIFT) && _key == 'S' ) {
+            consoleMutex.lock();
+            sandbox.screenshotFile = "ss.png";
+            consoleMutex.unlock();
+        }
         if( (_mods & GLFW_MOD_SHIFT) && _key == 'U' ) {
             inputLocked = false;
             std::cout << "INPUT UNLOCKED\n";
