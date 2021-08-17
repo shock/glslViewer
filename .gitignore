@@ -27,3 +27,5 @@ python/glslviewer.egg-info/*
 *.sln
 
 *.code-workspace
+
+*.png
