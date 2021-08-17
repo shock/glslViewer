@@ -44,12 +44,12 @@ vec4 fxaa(
     float fxaaConsoleEdgeThreshold,
     float fxaaConsoleEdgeThresholdMin
 ) {
-    float lumaNw = texture2D(tex, fxaaConsolePosPos.xy).y;
-    float lumaSw = texture2D(tex, fxaaConsolePosPos.xw).y;
-    float lumaNe = texture2D(tex, fxaaConsolePosPos.zy).y;
-    float lumaSe = texture2D(tex, fxaaConsolePosPos.zw).y;
+    float lumaNw = texture(tex, fxaaConsolePosPos.xy).y;
+    float lumaSw = texture(tex, fxaaConsolePosPos.xw).y;
+    float lumaNe = texture(tex, fxaaConsolePosPos.zy).y;
+    float lumaSe = texture(tex, fxaaConsolePosPos.zw).y;
 
-    vec4 rgbyM = texture2D(tex, pos.xy);
+    vec4 rgbyM = texture(tex, pos.xy);
     float lumaM = rgbyM.y;
     float lumaMaxNwSw = max(lumaNw, lumaSw);
 #   if FXAA_PATCHES == 0
@@ -86,8 +86,8 @@ vec4 fxaa(
 
     vec2 dir1 = dir.xy / dirLength;
 
-    vec4 rgbyN1 = texture2D(tex, pos.xy - dir1 * fxaaConsoleRcpFrameOpt.xy);
-    vec4 rgbyP1 = texture2D(tex, pos.xy + dir1 * fxaaConsoleRcpFrameOpt.xy);
+    vec4 rgbyN1 = texture(tex, pos.xy - dir1 * fxaaConsoleRcpFrameOpt.xy);
+    vec4 rgbyP1 = texture(tex, pos.xy + dir1 * fxaaConsoleRcpFrameOpt.xy);
 
 #   if FXAA_PATCHES
         float dirAbsMinTimesC = max(abs(dir1.x), abs(dir1.y)) * fxaaConsoleEdgeSharpness * 0.015;
@@ -96,8 +96,8 @@ vec4 fxaa(
         float dirAbsMinTimesC = min(abs(dir1.x), abs(dir1.y)) * fxaaConsoleEdgeSharpness;
         vec2 dir2 = clamp(dir1.xy / dirAbsMinTimesC, vec2(-2.0), vec2(2.0));
 #   endif
-    vec4 rgbyN2 = texture2D(tex, pos.xy - dir2 * fxaaConsoleRcpFrameOpt2.xy);
-    vec4 rgbyP2 = texture2D(tex, pos.xy + dir2 * fxaaConsoleRcpFrameOpt2.xy);
+    vec4 rgbyN2 = texture(tex, pos.xy - dir2 * fxaaConsoleRcpFrameOpt2.xy);
+    vec4 rgbyP2 = texture(tex, pos.xy + dir2 * fxaaConsoleRcpFrameOpt2.xy);
 
     vec4 rgbyA = rgbyN1 + rgbyP1;
     vec4 rgbyB = ((rgbyN2 + rgbyP2) * 0.25) + (rgbyA * 0.25);

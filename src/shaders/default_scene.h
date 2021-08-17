@@ -187,7 +187,7 @@ out vec4        v_lightCoord;
 
 float textureShadow(const sampler2D _shadowMap, in vec4 _coord) {
     vec3 shadowCoord = _coord.xyz / _coord.w;
-    return texture2D(_shadowMap, shadowCoord.xy).r;
+    return texture(_shadowMap, shadowCoord.xy).r;
 }
 
 float textureShadow(const sampler2D _shadowMap, in vec3 _coord) {
@@ -195,7 +195,7 @@ float textureShadow(const sampler2D _shadowMap, in vec3 _coord) {
 }
 
 float textureShadow(const sampler2D depths, vec2 uv, float compare){
-    return step(compare, texture2D(depths, uv).r );
+    return step(compare, texture(depths, uv).r );
 }
 
 float textureShadow(const sampler2D _shadowMap) {
@@ -602,7 +602,7 @@ vec4 materialBaseColor() {
     #if defined(MATERIAL_BASECOLORMAP_SCALE)
     uv *= (MATERIAL_BASECOLORMAP_SCALE).xy;
     #endif
-    base = gamma2linear( texture2D(MATERIAL_BASECOLORMAP, uv) );
+    base = gamma2linear( texture(MATERIAL_BASECOLORMAP, uv) );
 
 #elif defined(MATERIAL_BASECOLOR)
     base = MATERIAL_BASECOLOR;
@@ -637,7 +637,7 @@ vec3 materialSpecular() {
     #if defined(MATERIAL_SPECULARMAP_SCALE)
     uv *= (MATERIAL_SPECULARMAP_SCALE).xy;
     #endif
-    spec = texture2D(MATERIAL_SPECULARMAP, uv).rgb;
+    spec = texture(MATERIAL_SPECULARMAP, uv).rgb;
 #elif defined(MATERIAL_SPECULAR)
     spec = MATERIAL_SPECULAR;
 #endif
@@ -666,7 +666,7 @@ vec3 materialEmissive() {
     #if defined(MATERIAL_EMISSIVEMAP_SCALE)
     uv *= (MATERIAL_EMISSIVEMAP_SCALE).xy;
     #endif
-    emission = gamma2linear(texture2D(MATERIAL_EMISSIVEMAP, uv)).rgb;
+    emission = gamma2linear(texture(MATERIAL_EMISSIVEMAP, uv)).rgb;
 
 #elif defined(MATERIAL_EMISSIVE)
     emission = MATERIAL_EMISSIVE;
@@ -696,10 +696,10 @@ float materialOcclusion() {
 
 #if defined(MATERIAL_OCCLUSIONMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONMAP, uv).r;
+    occlusion = texture(MATERIAL_OCCLUSIONMAP, uv).r;
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
+    occlusion = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
 #endif
 
 #if defined(MATERIAL_OCCLUSIONMAP_STRENGTH)
@@ -738,7 +738,7 @@ vec3 materialNormal() {
         #if defined(MATERIAL_NORMALMAP_SCALE)
     uv *= (MATERIAL_NORMALMAP_SCALE).xy;
         #endif
-    normal = texture2D(MATERIAL_NORMALMAP, uv).xyz;
+    normal = texture(MATERIAL_NORMALMAP, uv).xyz;
     normal = v_tangentToWorld * (normal * 2.0 - 1.0);
 
     #elif defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_BUMPMAP_NORMALMAP)
@@ -749,7 +749,7 @@ vec3 materialNormal() {
         #if defined(MATERIAL_BUMPMAP_SCALE)
     uv *= (MATERIAL_BUMPMAP_SCALE).xy;
         #endif
-    normal = v_tangentToWorld * (texture2D(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
+    normal = v_tangentToWorld * (texture(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
     #endif
 
 #endif
@@ -818,15 +818,15 @@ float materialMetallic() {
     #if defined(MATERIAL_METALLICMAP_SCALE)
     uv *= (MATERIAL_METALLICMAP_SCALE).xy;
     #endif
-    metallic = texture2D(MATERIAL_METALLICMAP, uv).b;
+    metallic = texture(MATERIAL_METALLICMAP, uv).b;
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
+    metallic = texture(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
+    metallic = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_METALLIC)
     metallic = MATERIAL_METALLIC;
@@ -872,15 +872,15 @@ float materialRoughness() {
     #if defined(MATERIAL_ROUGHNESSMAP_SCALE)
     uv *= (MATERIAL_ROUGHNESSMAP_SCALE).xy;
     #endif
-    roughness = texture2D(MATERIAL_ROUGHNESSMAP, uv).g;
+    roughness = texture(MATERIAL_ROUGHNESSMAP, uv).g;
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).g;
+    roughness = texture(MATERIAL_ROUGHNESSMETALLICMAP, uv).g;
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g;
+    roughness = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g;
 
 #elif defined(MATERIAL_ROUGHNESS)
     roughness = MATERIAL_ROUGHNESS;
@@ -1884,7 +1884,7 @@ vec4 pbr(const Material _mat) {
     // ------------------------
     float ssao = 1.0;
 #ifdef SCENE_SSAO
-    ssao = texture2D(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
+    ssao = texture(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
 #endif
     float diffuseAO = min(_mat.ambientOcclusion, ssao);
     float specularAO = specularAO(NoV, diffuseAO, roughness);
