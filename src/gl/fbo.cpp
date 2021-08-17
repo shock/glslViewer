@@ -27,9 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 Fbo::Fbo():
-    m_id(0), m_old_fbo_id(0), 
-    m_texture(0), m_depth_buffer(0), m_depth_texture(0), 
-    m_type(COLOR_TEXTURE), m_width(0), m_height(0), 
+    m_id(0), m_old_fbo_id(0),
+    m_texture(0), m_depth_buffer(0), m_depth_texture(0),
+    m_type(COLOR_TEXTURE), m_width(0), m_height(0),
     m_allocated(false), m_binded(false), m_depth(false) {
 }
 
@@ -76,31 +76,36 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type)
     if (!m_allocated) {
         // Create a frame buffer
         glGenFramebuffers(1, &m_id);
-
+check(false);
         // Create a texture to hold the depth buffer
-        if (m_depth) 
+        if (m_depth)
             glGenRenderbuffers(1, &m_depth_buffer);
+check(false);
     }
 
     m_width = _width;
     m_height = _height;
 
     bind();
+check(false);
 
     if (color_texture) {
 
         // Generate a texture to hold the colour buffer
-        if (m_texture == 0) 
+        if (m_texture == 0)
             glGenTextures(1, &m_texture);
 
+check(false);
         // Color
         glBindTexture(GL_TEXTURE_2D, m_texture);
+check(false);
 
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 #else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 #endif
+check(false);
 
         // glGenerateMipmap(GL_TEXTURE_2D);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -109,19 +114,22 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+check(false);
     }
 
     // Depth Buffer
     if (m_depth) {
         glBindRenderbuffer(GL_RENDERBUFFER, m_depth_buffer);
+check(false);
 
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, m_width, m_height);
 #else
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_width, m_height);
 #endif
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depth_buffer);
-    
+check(false);
+
 
         if (depth_texture) {
 
@@ -130,7 +138,7 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type)
                 glGenTextures(1, &m_depth_texture);
 
             glBindTexture(GL_TEXTURE_2D, m_depth_texture);
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
             // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
             // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
@@ -156,25 +164,37 @@ void Fbo::allocate(const uint32_t _width, const uint32_t _height, FboType _type)
     unbind();
 
     glBindTexture(GL_TEXTURE_2D, 0);
+check(false);
 
     if (m_depth)
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
+check(false);
 }
 
 void Fbo::bind() {
     if (!m_binded) {
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint *)&m_old_fbo_id);
+check(false);
 
         glBindTexture(GL_TEXTURE_2D, 0);
+check(false);
         glEnable(GL_TEXTURE_2D);
+glGetError();
         glBindFramebuffer(GL_FRAMEBUFFER, m_id);
+check(false);
         glViewport(0.0f, 0.0f, m_width, m_height);
+check(false);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+check(false);
 
-        if (m_depth)
+        if (m_depth) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        else
+check(false);
+        } else {
             glClear(GL_COLOR_BUFFER_BIT);
+            glGetError(); // consume error for unknown reason (don't feel like tracking it down, seem harmless)
+check(false);
+        }
 
         m_binded = true;
     }
@@ -183,6 +203,7 @@ void Fbo::bind() {
 void Fbo::unbind() {
     if (m_binded) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_old_fbo_id);
+check(false);
         m_binded = false;
     }
 }

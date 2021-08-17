@@ -483,7 +483,10 @@ check(false);
     // Turn on Alpha blending
     glEnable(GL_BLEND);
 check(false);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+check(false);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 check(false);
 
     // Clear the background
@@ -668,6 +671,7 @@ check(false);
 
 // ------------------------------------------------------------------------- UPDATE
 void Sandbox::_updateBuffers() {
+check(false);
     if ( m_buffers_total != int(uniforms.buffers.size()) ) {
 
         if (verbose)
@@ -678,12 +682,16 @@ void Sandbox::_updateBuffers() {
 
         for (int i = 0; i < m_buffers_total; i++) {
             // New FBO
+check(false);
             uniforms.buffers.push_back( Fbo() );
+check(false);
             uniforms.buffers[i].allocate(getWindowWidth(), getWindowHeight(), COLOR_TEXTURE);
-
+check(false);
             // New Shader
             m_buffers_shaders.push_back( Shader() );
             m_buffers_shaders[i].addDefine("BUFFER_" + toString(i));
+            if (verbose)
+                std::cout << " Loading shader for buffer " << toString(i) << std::endl;
             m_buffers_shaders[i].load(m_frag_source, billboard_vert, false);
         }
     }
@@ -691,8 +699,11 @@ void Sandbox::_updateBuffers() {
         for (unsigned int i = 0; i < m_buffers_shaders.size(); i++) {
 
             // Reload shader code
+check(false);
             m_buffers_shaders[i].addDefine("BUFFER_" + toString(i));
+check(false);
             m_buffers_shaders[i].load(m_frag_source, billboard_vert, false);
+check(false);
         }
     }
 }

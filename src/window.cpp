@@ -33,7 +33,6 @@ static double timeOffset = 0.0f;
 static double fDelta = 0.0f;
 static double fFPS = 0.0f;
 static float fPixelDensity = 1.0;
-
 extern void pal_sleep(uint64_t);
 
 #if defined(DRIVER_GLFW)
@@ -271,7 +270,7 @@ MessageCallback( GLenum source,
             type, severity, message );
 }
 
-void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
+void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
 
     // NON GLFW
     #if !defined(DRIVER_GLFW)
@@ -451,6 +450,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         glewInit();
 #endif//
         glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
+            TRAC;
             setViewport(_w,_h);
         });
 
@@ -544,12 +544,15 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         });
 
         glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
+            // TRAC;
             if (fPixelDensity != getPixelDensity()) {
+            // TRAC;
                 updateViewport();
             }
         });
 
-        glfwSwapInterval(2);
+        // default to vsync enabled
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
 
         if (_viewport.x > 0 || _viewport.y > 0) {
             glfwSetWindowPos(window, _viewport.x, _viewport.y);
@@ -558,6 +561,14 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         resetTime();
     #endif
     setViewport(_viewport.z,_viewport.w);
+}
+
+void setVsync(bool on) {
+    if( on ) {
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
+    } else {
+        glfwSwapInterval(0);
+    }
 }
 
 bool isGL(){
@@ -767,16 +778,23 @@ void updateViewport() {
     orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity,
                                 (float)viewport.y * fPixelDensity, (float)viewport.w * fPixelDensity);
 
+    // TRAC;
     onViewportResize(getWindowWidth(), getWindowHeight());
 }
 
 void setViewport(float _width, float _height) {
+    if( inputLocked ) {
+        std::cout << "Warning INPUT LOCKED - skipping setViewport\n";
+        return;
+    }
     viewport.z = _width;
     viewport.w = _height;
+    // TRAC;
     updateViewport();
 }
 
 void setWindowSize(int _width, int _height) {
+    TRAC;
 #if defined(DRIVER_GLFW)
     glfwSetWindowSize(window, _width, _height);
 #endif
