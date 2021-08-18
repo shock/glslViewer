@@ -1184,6 +1184,26 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
         }
     }
 
+    if (beginsWith(_cmd, "stats")) {
+        std::cout << "\nFPS: " << getFPS() << "\n";
+        std::cout << "Time: " << toString(getTime()) << "\n";
+        std::cout << "Frames: " << sandbox.frameNumber << "\n\n";
+        resolve = true;
+    }
+
+    if (beginsWith(_cmd, "ss")) {
+        consoleMutex.lock();
+        sandbox.screenshotFile = "ss.png";
+        consoleMutex.unlock();
+        resolve = true;
+    }
+
+    if (beginsWith(_cmd, "lock")) {
+        inputLocked = true;
+        std::cout << "INPUT LOCKED\n";
+        resolve = true;
+    }
+
     // If nothing match maybe the user is trying to define the content of a uniform
     if (!resolve) {
         if( inputLocked ) {
