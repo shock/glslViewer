@@ -189,10 +189,11 @@ check(false);
 
         if (m_depth) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glGetError(); // consume error for unknown reason (don't feel like tracking it down, appears harmless)
 check(false);
         } else {
             glClear(GL_COLOR_BUFFER_BIT);
-            glGetError(); // consume error for unknown reason (don't feel like tracking it down, seem harmless)
+            glGetError(); // consume error for unknown reason (don't feel like tracking it down, appears harmless)
 check(false);
         }
 

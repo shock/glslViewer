@@ -65,6 +65,8 @@ Osc osc_listener;
 std::string version = "1.6.8";
 std::string name = "GlslViewer";
 std::string header = name + " " + version + " by Patricio Gonzalez Vivo ( patriciogonzalezvivo.com )";
+std::string defaultScreenshotFilename = "ss.png";
+std::string screenshotFilename = "";
 
 const unsigned int micro_wait = REST_SEC * 1000000;
 bool fullFps = false;
@@ -75,6 +77,8 @@ bool inputLocked = false;
 bool singleFrame = false;
 int maxFrames = -1;
 bool vsyncOn = true;
+bool headless = false;
+bool writeAndExitOnFrameLimit = false;
 
 // Here is where all the magic happens
 Sandbox sandbox;
@@ -127,7 +131,8 @@ void printUsage(char * executableName) {
     std::cerr << "// [-e/-E <command>] - execute command when start. Multiple -e flags can be chained" << std::endl;
     std::cerr << "// [-v/--version] - return glslViewer version" << std::endl;
     std::cerr << "// [-s/--single] - run in single frame mode.  Window buffer is rendered only once when files change." << std::endl;
-    std::cerr << "// [-fl <frames>] - renders <frames> frames, then pauses until files change" << std::endl;
+    std::cerr << "// [-fl/--frameLimit <frames>] - renders <frames> frames, then pauses until files change" << std::endl;
+    std::cerr << "// [-sn/--savename <filename.ext>] - filename to save image buffer as (screenshot or headless)" << std::endl;
     std::cerr << "// [-nv/--no-vsync] - disable vertical sync on frame buffer swaps (useful for iterative renders)" << std::endl;
     std::cerr << "// [--verbose] - turn verbose outputs on" << std::endl;
     std::cerr << "// [--help] - print help for one or all command" << std::endl;
@@ -626,14 +631,6 @@ void unpause() {
     maxFrames = -1;
 }
 
-void allowRefresh() {
-    paused = false;
-    sandbox.frameNumber = 0;
-    if( !vsyncOn ) {
-        resetTime();
-    }
-}
-
 void doPause() {
     singleFrame = true;
     // maxFrames = 10;
@@ -643,6 +640,33 @@ void togglePause() {
     if( paused == true ) { unpause(); singleFrame = false; }
     else doPause();
     // maxFrames = 10;
+}
+
+std::string getSaveFilename() {
+    if( screenshotFilename != "" )
+        return screenshotFilename;
+    return defaultScreenshotFilename;
+}
+
+void printStats() {
+    std::cout << "\nFrame Limit: " << maxFrames << "\n";
+    std::cout << "outfile: " << getSaveFilename() << "\n";
+    std::cout << "FPS: " << getFPS() << "\n";
+    std::cout << "Time: " << toString(getTime()) << "\n";
+    std::cout << "Frames: " << sandbox.frameNumber << "\n\n";
+}
+
+void allowRefresh() {
+    paused = false;
+    if( sandbox.frameNumber != 0 ) {
+        sandbox.frameNumber = 0;
+        if( headless ) {
+            printStats();
+        }
+    }
+    if( !vsyncOn ) {
+        resetTime();
+    }
 }
 
 // Main program
@@ -698,6 +722,7 @@ int main(int argc, char **argv){
         }
         else if (   std::string(argv[i]) == "--headless" ) {
             windowStyle = HEADLESS;
+            headless = true;
         }
         else if (   std::string(argv[i]) == "-f" ||
                     std::string(argv[i]) == "--fullscreen" ) {
@@ -779,6 +804,13 @@ int main(int argc, char **argv){
             else
                 std::cout << "Argument '" << argument << "' should be followed by a number. Skipping argument." << std::endl;
         }
+        else if ( argument== "-sn" || argument == "--savename" ) {
+            if(++i < argc) {
+                screenshotFilename = std::string(argv[i]);
+            }
+            else
+                std::cout << "Argument '" << argument << "' should be followed by a string. Skipping argument." << std::endl;
+        }
         else if ( argument== "-nv" || argument == "--no-vsync" ) {
             std::cout << "Disabling vertical sync" << std::endl;
             vsyncOn = false;
@@ -808,6 +840,11 @@ int main(int argc, char **argv){
                 std::ofstream out(argv[i]);
                 out << default_scene_frag;
                 out.close();
+            }
+            std::vector<std::string> values = split(argument,'.');
+            if (values.size() == 2) {
+                values = split(values[0],'/');
+                defaultScreenshotFilename = std::string(values[values.size()-1]) + ".png";
             }
 
             WatchFile file;
@@ -965,6 +1002,11 @@ int main(int argc, char **argv){
     if (sandbox.verbose)
         std::cout << "Starting Render Loop" << std::endl;
 
+    if( headless && maxFrames != -1 ) {
+        writeAndExitOnFrameLimit = true;
+        printStats();
+    }
+
     // Render Loop
     check(false);
     while ( isGL() && bRun.load() ) {
@@ -987,6 +1029,10 @@ int main(int argc, char **argv){
             frameLimitReached = false;
         } else {
             frameLimitReached = true;
+            if( sandbox.frameNumber == maxFrames && writeAndExitOnFrameLimit ) {
+                sandbox.screenshotFile = getSaveFilename();
+                timeOut = true;
+            }
         }
 
         // If nothing in the scene change skip the frame and try to keep it at 60fps
@@ -1063,7 +1109,7 @@ void onKeyPress (int _key, int _mods) {
     else {
         if( (_mods & GLFW_MOD_SHIFT) && _key == 'S' ) {
             consoleMutex.lock();
-            sandbox.screenshotFile = "ss.png";
+            sandbox.screenshotFile = getSaveFilename();
             consoleMutex.unlock();
         }
         if( (_mods & GLFW_MOD_SHIFT) && _key == 'U' ) {
@@ -1185,15 +1231,13 @@ void runCmd(const std::string &_cmd, std::mutex &_mutex) {
     }
 
     if (beginsWith(_cmd, "stats")) {
-        std::cout << "\nFPS: " << getFPS() << "\n";
-        std::cout << "Time: " << toString(getTime()) << "\n";
-        std::cout << "Frames: " << sandbox.frameNumber << "\n\n";
+        printStats();
         resolve = true;
     }
 
     if (beginsWith(_cmd, "ss")) {
         consoleMutex.lock();
-        sandbox.screenshotFile = "ss.png";
+        sandbox.screenshotFile = getSaveFilename();
         consoleMutex.unlock();
         resolve = true;
     }
