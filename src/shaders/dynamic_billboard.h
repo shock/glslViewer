@@ -51,7 +51,7 @@ out vec4 out_Color;
 
 void main(void) {
     vec4 color = u_color;
-    color += texture2D(u_tex0, v_texcoord);
+    color += texture(u_tex0, v_texcoord);
 
     if (u_depth > 0.0) {
         color.r = linearizeDepth(color.r) * u_cameraFarClip;

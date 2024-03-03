@@ -20,7 +20,7 @@ void main() {
     vec3 color = vec3(0.0);
     vec2 st = v_texcoord;
 
-    vec4 freqs = texture2D(u_sceneHistogram, vec2(st.x, 0.0));
+    vec4 freqs = texture(u_sceneHistogram, vec2(st.x, 0.0));
 
     color.r = step(st.y, freqs.r);
     color.g = step(st.y, freqs.g);

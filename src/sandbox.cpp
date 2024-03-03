@@ -828,16 +828,16 @@ void Sandbox::render() {
     if (screenshotFile != "" || m_record) {
         m_record_fbo.unbind();
 
-        if (!m_billboard_shader.isLoaded())
-            m_billboard_shader.load(dynamic_billboard_frag, dynamic_billboard_vert, false);
+        // if (!m_billboard_shader.isLoaded())
+        //     m_billboard_shader.load(dynamic_billboard_frag, dynamic_billboard_vert, false);
 
-        m_billboard_shader.use();
-        m_billboard_shader.setUniform("u_depth", 0.0f);
-        m_billboard_shader.setUniform("u_scale", 1.0f, 1.0f);
-        m_billboard_shader.setUniform("u_translate", 0.0f, 0.0f);
-        m_billboard_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
-        m_billboard_shader.setUniformTexture("u_tex0", &m_record_fbo, 0);
-        m_billboard_vbo->render( &m_billboard_shader );
+        // m_billboard_shader.use();
+        // m_billboard_shader.setUniform("u_depth", 0.0f);
+        // m_billboard_shader.setUniform("u_scale", 1.0f, 1.0f);
+        // m_billboard_shader.setUniform("u_translate", 0.0f, 0.0f);
+        // m_billboard_shader.setUniform("u_modelViewProjectionMatrix", glm::mat4(1.0) );
+        // m_billboard_shader.setUniformTexture("u_tex0", &m_record_fbo, 0);
+        // m_billboard_vbo->render( &m_billboard_shader );
     }
     check(false);
     frameNumber++;
