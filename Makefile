@@ -71,7 +71,8 @@ LDFLAGS += $(shell pkg-config --libs glfw3 glu gl x11 xrandr xi xxf86vm xcursor 
 
 else ifeq ($(PLATFORM),Darwin)
 CXX = /usr/bin/clang++
-ARCH = -arch x86_64
+# ARCH = -arch x86_64
+ARCH = -arch arm64
 CFLAGS += $(ARCH) -DPLATFORM_OSX -DDRIVER_GLFW -D__gl_h_ -DGL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED -stdlib=libc++ $(shell pkg-config --cflags glfw3)
 INCLUDES += -I/System/Library/Frameworks/GLUI.framework
 LDFLAGS += $(ARCH) -framework OpenGL -framework Cocoa -framework CoreVideo -framework IOKit $(shell pkg-config --libs glfw3)
