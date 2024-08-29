@@ -4,6 +4,7 @@
 #include "../geometric.hpp"
 #include "../trigonometric.hpp"
 #include "../matrix.hpp"
+#include "backtrace.h"
 
 namespace glm
 {

@@ -450,7 +450,7 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
         glewInit();
 #endif//
         glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
-            TRAC;
+            // TRAC;
             setViewport(_w,_h);
         });
 
