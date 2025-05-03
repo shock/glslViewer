@@ -114,6 +114,13 @@ void Vbo::upload() {
     m_isUploaded = true;
 }
 
+void Vbo::setupBuffers(Shader* _shader) {
+    glGenVertexArrays(1, m_glVao);
+    glBindVertexArray(m_glVao[0]);
+    upload();
+    m_vertexLayout->enable(_shader);
+}
+
 void Vbo::printInfo() {
     std::cout << "Vertices  = " << m_nVertices << std::endl;
     std::cout << "Indices   = " << m_nIndices << std::endl;
@@ -127,39 +134,43 @@ void Vbo::render(Shader* _shader) {
 
     // Ensure that geometry is buffered into GPU
     if (!m_isUploaded) {
-        upload();
+        setupBuffers(_shader);
+        check(false);
     }
 
     // Bind buffers for drawing
     if (m_nVertices > 0) {
         glBindBuffer(GL_ARRAY_BUFFER, m_glVertexBuffer);
+        check(false);
     }
 
     if (m_nIndices > 0) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
+        check(false);
     }
 
-    // Enable shader program
-    _shader->use();
-
-    // Enable vertex attribs via vertex layout object
-    m_vertexLayout->enable(_shader);
+    glBindVertexArray(m_glVao[0]);
+    check(false);
 
 #if !defined(PLATFORM_RPI) && !defined(PLATFORM_RPI4) && !defined(PLATFORM_WINDOWS)
     if (m_drawMode == GL_POINTS) {
-        glEnable(GL_POINT_SPRITE);
+        // glEnable(GL_POINT_SPRITE); // original
+        glEnable(34913); // hack, no idea if it works, I don't use point sprites anyway
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     }
 #endif
 
     // Draw as elements or arrays
     if (m_nIndices > 0) {
-        #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+        #if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_SHORT, 0);
+        check(false);
         #else
         glDrawElements(m_drawMode, m_nIndices, GL_UNSIGNED_INT, 0);
+        check(false);
         #endif
     } else if (m_nVertices > 0) {
         glDrawArrays(m_drawMode, 0, m_nVertices);
+        check(false);
     }
 }

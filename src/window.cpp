@@ -7,7 +7,7 @@
 #else
 #include <sys/time.h>
 #include <unistd.h>
-#endif 
+#endif
 
 #include "gl/gl.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -28,10 +28,11 @@ static Mouse mouse;
 static glm::vec4 mouse4 = {0.0, 0.0, 0.0, 0.0};
 static glm::ivec4 viewport;
 static double fTime = 0.0f;
+static double pTime = 0.0f;
+static double timeOffset = 0.0f;
 static double fDelta = 0.0f;
 static double fFPS = 0.0f;
 static float fPixelDensity = 1.0;
-
 extern void pal_sleep(uint64_t);
 
 #if defined(DRIVER_GLFW)
@@ -252,7 +253,24 @@ static EGLDisplay getDisplay() {
 }
 #endif
 
-void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
+#define GL_DEBUG_TYPE_ERROR 0x824C
+#define GL_DEBUG_OUTPUT 0x92E0
+
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
+void initGL (glm::ivec4 &_viewport, WindowStyle _style, bool vsync) {
 
     // NON GLFW
     #if !defined(DRIVER_GLFW)
@@ -263,18 +281,15 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
         display = getDisplay();
         assert(display != EGL_NO_DISPLAY);
-        check();
 
         result = eglInitialize(display, NULL, NULL);
         assert(EGL_FALSE != result);
-        check();
 
         // Make sure that we can use OpenGL in this EGL app.
         // result = eglBindAPI(EGL_OPENGL_API);
         result = eglBindAPI(EGL_OPENGL_ES_API);
         assert(EGL_FALSE != result);
-        check();
-       
+
         static const EGLint configAttribs[] = {
             EGL_RED_SIZE, 8,
             EGL_GREEN_SIZE, 8,
@@ -355,11 +370,9 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         nativeviewport.width = _viewport.z;
         nativeviewport.height = _viewport.w;
         vc_dispmanx_update_submit_sync( dispman_update );
-        check();
 
         surface = eglCreateWindowSurface( display, config, &nativeviewport, NULL );
         assert(surface != EGL_NO_SURFACE);
-        check();
 
         #elif defined(DRIVER_GBM)
         surface = eglCreateWindowSurface(display, config, gbmSurface, NULL);
@@ -376,12 +389,11 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         // connect the context to the surface
         result = eglMakeCurrent(display, surface, surface, context);
         assert(EGL_FALSE != result);
-        check();
 
     // GLFW
     #else
 
-    
+
         glfwSetErrorCallback([](int err, const char* msg)->void {
             std::cerr << "GLFW error 0x"<<std::hex<<err<<std::dec<<": "<<msg<<"\n";
         });
@@ -392,9 +404,22 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
 
         if (_style == HEADLESS)
             glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-            
+
         else if (_style == ALLWAYS_ON_TOP)
             glfwWindowHint(GLFW_FLOATING, GL_TRUE);
+
+    #ifdef PLATFORM_OSX
+            // https://gist.github.com/v3n/27e810ac744b076ceeb7
+            glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
+            glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+            glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // During init, enable debug output
+        // glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+
+    #endif
+
 
         if (_style == FULLSCREEN) {
             GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -416,18 +441,21 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
             exit(-1);
         }
 
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        // glDebugMessageCallback( MessageCallback, 0 );
+
+        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
         glfwMakeContextCurrent(window);
 #ifdef PLATFORM_WINDOWS
         glewInit();
 #endif//
         glfwSetWindowSizeCallback(window, [](GLFWwindow* _window, int _w, int _h) {
+            // TRAC;
             setViewport(_w,_h);
         });
 
         glfwSetKeyCallback(window, [](GLFWwindow* _window, int _key, int _scancode, int _action, int _mods) {
-            onKeyPress(_key);
+            if( _action == GLFW_PRESS || _action == GLFW_REPEAT ) onKeyPress(_key, _mods);
         });
 
         // callback when a mouse button is pressed or released
@@ -516,22 +544,35 @@ void initGL (glm::ivec4 &_viewport, WindowStyle _style) {
         });
 
         glfwSetWindowPosCallback(window, [](GLFWwindow* _window, int x, int y) {
+            // TRAC;
             if (fPixelDensity != getPixelDensity()) {
+            // TRAC;
                 updateViewport();
             }
         });
 
-        glfwSwapInterval(1);
+        // default to vsync enabled
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
 
         if (_viewport.x > 0 || _viewport.y > 0) {
             glfwSetWindowPos(window, _viewport.x, _viewport.y);
         }
+
+        resetTime();
     #endif
     setViewport(_viewport.z,_viewport.w);
 }
 
+void setVsync(bool on) {
+    if( on ) {
+        glfwSwapInterval(2); // 1 should work, but 2 is less jittery on Mac mini M1
+    } else {
+        glfwSwapInterval(0);
+    }
+}
+
 bool isGL(){
- 
+
     #if defined(DRIVER_GLFW)
         return !glfwWindowShouldClose(window);
 
@@ -544,7 +585,7 @@ bool isGL(){
     #endif
 }
 
-#if defined(DRIVER_GLFW) 
+#if defined(DRIVER_GLFW)
 void debounceSetWindowTitle(std::string title){
     static double lastUpdated;
 
@@ -560,28 +601,50 @@ void debounceSetWindowTitle(std::string title){
 }
 #endif
 
-void updateGL(){
+void fastForwardTime( double amount ) {
+    timeOffset -= amount;
+}
+
+void rewindTime( double amount ) {
+    timeOffset += amount;
+}
+
+void resetTime() {
+    timeOffset = fTime;
+}
+
+double prevTime = 0.0f;
+
+void updateGL( bool paused ){
     // Update time
     // --------------------------------------------------------------------
 
     #if defined(DRIVER_GLFW)
         double now = glfwGetTime();
 
-        // Fix the FPS to a max of 60fps (REST_SEC)
-        float diff = now - fTime;
-        if (diff < REST_SEC) {
-            pal_sleep(int((REST_SEC - diff) * 1000000));
-            now = glfwGetTime();
-        }
+        // // Fix the FPS to a max of 60fps (REST_SEC)
+        // float diff = now - fTime;
+        // if (diff < REST_SEC) {
+        //     pal_sleep(int((REST_SEC - diff) * 1000000));
+        //     now = glfwGetTime();
+        // }
 
-    #else 
-        // NON GLFW (VC or GBM) 
-        double now = getTimeSec();       
-    
+    #else
+        // NON GLFW (VC or GBM)
+        double now = getTimeSec();
+
     #endif
 
-    fDelta = now - fTime;
-    fTime = now;
+    fDelta = now - prevTime;
+    prevTime = now;
+    if ( !paused ) {
+        fTime = now - pTime;
+    } else {
+        pTime = now - fTime;
+    }
+
+    // fTime = fTime - timeOffset;
+    // if( fTime < 0.0f ) { fTime =0.0f; }
 
     static int frame_count = 0;
     static double lastTime = 0.0;
@@ -596,10 +659,14 @@ void updateGL(){
     // EVENTS
     // --------------------------------------------------------------------
         #if defined(DRIVER_GLFW)
-        std::string title = appTitle + ":..: FPS:" + toString(fFPS);
+        int time = int(getTime() * 100);
+        std::string title = appTitle;
+        title += " - " + toString(viewport.z) + "x" + toString(viewport.w);
+        title += " - FPS:" + toString(fFPS);
+        title += " - " + toString(float(time)/100) + "s";
         debounceSetWindowTitle(title);
         glfwPollEvents();
-        
+
         #else
         const int XSIGN = 1<<4, YSIGN = 1<<5;
         static int fd = -1;
@@ -667,7 +734,6 @@ void renderGL(){
     // NON GLFW
 #if defined(DRIVER_GLFW)
     glfwSwapBuffers(window);
-
 #else
     eglSwapBuffers(display, surface);
     #if defined(DRIVER_GBM)
@@ -709,19 +775,26 @@ void updateViewport() {
     fPixelDensity = getPixelDensity();
     glViewport( (float)viewport.x * fPixelDensity, (float)viewport.y * fPixelDensity,
                 (float)viewport.z * fPixelDensity, (float)viewport.w * fPixelDensity);
-    orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity, 
+    orthoMatrix = glm::ortho(   (float)viewport.x * fPixelDensity, (float)viewport.z * fPixelDensity,
                                 (float)viewport.y * fPixelDensity, (float)viewport.w * fPixelDensity);
 
+    // TRAC;
     onViewportResize(getWindowWidth(), getWindowHeight());
 }
 
 void setViewport(float _width, float _height) {
+    if( inputLocked ) {
+        std::cout << "Warning INPUT LOCKED - skipping setViewport\n";
+        return;
+    }
     viewport.z = _width;
     viewport.w = _height;
+    // TRAC;
     updateViewport();
 }
 
 void setWindowSize(int _width, int _height) {
+    TRAC;
 #if defined(DRIVER_GLFW)
     glfwSetWindowSize(window, _width, _height);
 #endif
@@ -797,7 +870,7 @@ glm::vec4 getDate() {
     errno_t err = localtime_s(tm, &tv);
     if (err)
     {
-              
+
     }
 
     return glm::vec4(tm->tm_year + 1900,
@@ -813,12 +886,12 @@ glm::vec4 getDate() {
         tm->tm_mon,
         tm->tm_mday,
         tm->tm_hour * 3600.0f + tm->tm_min * 60.0f + tm->tm_sec + tv.tv_usec * 0.000001);
-#endif 
-  
+#endif
+
 }
 
 double getTime() {
-    return fTime;
+    return  fTime - timeOffset;
 }
 
 double getDelta() {

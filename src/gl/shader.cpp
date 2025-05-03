@@ -12,7 +12,7 @@
 #include "shaders/default_error.h"
 
 Shader::Shader():
-    m_program(0), 
+    m_program(0),
     m_fragmentShader(0),m_vertexShader(0) {
 
     // Adding default defines
@@ -39,25 +39,39 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
     start_time = std::chrono::steady_clock::now();
     m_defineChange = false;
 
+check(false);
     m_vertexShader = compileShader(_vertexSrc, GL_VERTEX_SHADER, _verbose);
-
+check(false);
     if (!m_vertexShader) {
+        if( error_vert == _vertexSrc ) {
+            std::cerr << "Failed to load error vertex shader.  Exiting with status code 1.\n";
+            exit(1);
+        }
         load(error_frag, error_vert, false);
+check(false);
         return false;
     }
 
+check(false);
     m_fragmentShader = compileShader(_fragmentSrc, GL_FRAGMENT_SHADER, _verbose);
-
+check(false);
     if (!m_fragmentShader) {
+        if( error_frag == _fragmentSrc ) {
+            std::cerr << "Failed to load error fragment shader.  Exiting with status code 1.\n";
+            exit(1);
+        }
         load(error_frag, error_vert, false);
-        return false;
+check(false);        return false;
     }
 
     m_program = glCreateProgram();
-
+check(false);
     glAttachShader(m_program, m_vertexShader);
+check(false);
     glAttachShader(m_program, m_fragmentShader);
+check(false);
     glLinkProgram(m_program);
+check(false);
 
     m_fragmentSource = _fragmentSrc;
     m_vertexSource = _vertexSrc;
@@ -67,13 +81,16 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
 
     GLint isLinked;
     glGetProgramiv(m_program, GL_LINK_STATUS, &isLinked);
+check(false);
 
     if (isLinked == GL_FALSE) {
         GLint infoLength = 0;
         glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, &infoLength);
+check(false);
         if (infoLength > 1) {
             std::vector<GLchar> infoLog(infoLength);
             glGetProgramInfoLog(m_program, infoLength, NULL, &infoLog[0]);
+check(false);
             std::string error(infoLog.begin(),infoLog.end());
             // printf("Error linking shader:\n%s\n", error);
             std::cerr << "Error linking shader: " << error << std::endl;
@@ -84,12 +101,15 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
             std::cerr << (unsigned)toInt(lineNum) << ": " << getLineNumber(_fragmentSrc,(unsigned)toInt(lineNum)) << std::endl;
         }
         glDeleteProgram(m_program);
+check(false);
         load(error_frag, error_vert, false);
         return false;
-    } 
+    }
     else {
         glDeleteShader(m_vertexShader);
+check(false);
         glDeleteShader(m_fragmentShader);
+check(false);
 
         if (_verbose) {
             std::cerr << "shader load time: " << load_time.count() << "s";
@@ -100,8 +120,10 @@ bool Shader::load(const std::string& _fragmentSrc, const std::string& _vertexSrc
                 std::cerr << " size: " << proglen;
 #endif
 #ifdef GL_PROGRAM_INSTRUCTIONS_ARB
+// TRAC;
             GLint icount = 0;
-            glGetProgramivARB(m_program, GL_PROGRAM_INSTRUCTIONS_ARB, &icount);
+            // glGetProgramivARB(m_program, GL_PROGRAM_INSTRUCTIONS_ARB, &icount);
+check(false);
             if (icount > 0)
                 std::cerr << " #instructions: " << icount;
 #endif
@@ -121,7 +143,7 @@ const GLint Shader::getAttribLocation(const std::string& _attribute) const {
 
 void Shader::use() {
     textureIndex = 0;
-
+    // TRAC;
     if (m_defineChange)
         reload(false);
 
@@ -140,6 +162,7 @@ bool Shader::isLoaded() const {
 }
 
 GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbose) {
+check(false);
     std::string prolog = "";
 
     //
@@ -200,7 +223,8 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
     } else {
         // no #version directive found at the beginning of _src, which means...
         srcBody = _src; // ... _src contains the whole shader body and ...
-        zeroBasedLineDirective = true; // ... glsl defaults to version 1.10, which starts numbering #line directives from 0.
+        prolog += "#version 410\n";
+        zeroBasedLineDirective = false;
     }
 
     for(DefinesList_it it = m_defines.begin(); it != m_defines.end(); it++) {
@@ -218,39 +242,49 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
     size_t startLine = (srcVersionFound ? 1 : 0) + (zeroBasedLineDirective ? 0 : 1);
     prolog += "#line " + std::to_string(startLine) + "\n";
 
-    // if (_verbose) {
-    //     if (_type == GL_VERTEX_SHADER) {
-    //         std::cout << "// ---------- Vertex Shader" << std::endl;
-    //     }
-    //     else {
-    //         std::cout << "// ---------- Fragment Shader" << std::endl;
-    //     }
-    //     std::cout << prolog << std::endl;
-    //     std::cout << srcBody << std::endl;
-    // }
+    if (_verbose) {
+        if (_type == GL_VERTEX_SHADER) {
+            std::cout << "// ---------- Vertex Shader" << std::endl;
+        }
+        else if (_type == GL_FRAGMENT_SHADER) {
+            std::cout << "// ---------- Fragment Shader" << std::endl;
+        }
+        else {
+            std::cout << "// ---------- ?? Shader" << std::endl;
+        }
+        // std::cout << prolog << std::endl;
+        // std::cout << srcBody << std::endl;
+    }
 
     const GLchar* sources[2] = {
         (const GLchar*) prolog.c_str(),
         (const GLchar*) srcBody.c_str()
     };
 
+check(false);
     GLuint shader = glCreateShader(_type);
+    check(false);
     glShaderSource(shader, 2, sources, NULL);
+    check(false);
     glCompileShader(shader);
+    check(false);
 
     GLint isCompiled;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+    check(false);
 
     GLint infoLength = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLength);
-    
-#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4) 
+    check(false);
+
+#if defined(PLATFORM_RPI) || defined(PLATFORM_RPI4)
     if (infoLength > 1 && !isCompiled) {
 #else
     if (infoLength > 1) {
 #endif
         std::vector<GLchar> infoLog(infoLength);
         glGetShaderInfoLog(shader, infoLength, NULL, &infoLog[0]);
+    check(false);
         std::cerr << (isCompiled ? "Warnings" : "Errors");
         std::cerr << " while compiling ";
         if (_type == GL_FRAGMENT_SHADER) {
@@ -264,6 +298,7 @@ GLuint Shader::compileShader(const std::string& _src, GLenum _type, bool _verbos
 
     if (isCompiled == GL_FALSE) {
         glDeleteShader(shader);
+    check(false);
         return 0;
     }
 
@@ -277,11 +312,13 @@ void Shader::detach(GLenum _type) {
     if (vert) {
         glDeleteShader(m_vertexShader);
         glDetachShader(m_vertexShader, GL_VERTEX_SHADER);
+        glGetError();
     }
 
     if (frag) {
         glDeleteShader(m_fragmentShader);
         glDetachShader(m_fragmentShader, GL_FRAGMENT_SHADER);
+        glGetError();
     }
 }
 
@@ -411,16 +448,24 @@ void Shader::setUniform(const std::string& _name, const glm::vec4 *_array, unsig
 
 void Shader::setUniformTextureCube(const std::string& _name, const TextureCube* _tex, unsigned int _texLoc) {
     if (isInUse()) {
+        // TRAC;
         glActiveTexture(GL_TEXTURE0 + _texLoc);
+        // std::cout << "cubemap texture location " << _texLoc << "\n";
+        check(false);
         glBindTexture(GL_TEXTURE_CUBE_MAP, _tex->getId());
+        // std::cout << _tex->getId() << "\n";
+        check(false);
         glUniform1i(getUniformLocation(_name), _texLoc);
+        check(false);
     }
 }
 
 void Shader::setUniformTexture(const std::string& _name, const Texture* _tex, unsigned int _texLoc) {
     if (isInUse()) {
         glActiveTexture(GL_TEXTURE0 + _texLoc);
+        // std::cout << "2D texture location " << _texLoc << "\n";
         glBindTexture(GL_TEXTURE_2D, _tex->getId());
+        // std::cout << _tex->getId() << "\n";
         glUniform1i(getUniformLocation(_name), _texLoc);
     }
 }

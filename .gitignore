@@ -1,6 +1,11 @@
-
+scratch
 .DS_Store
 *.o
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
 bin/glslViewer
 bin/x32/*
@@ -25,3 +30,7 @@ python/glslviewer.egg-info/*
 *.filters
 *.user
 *.sln
+
+*.code-workspace
+
+*.png

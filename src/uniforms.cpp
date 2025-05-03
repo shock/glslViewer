@@ -14,7 +14,7 @@ std::string UniformData::getType() {
         return "float";
     }
     else {
-        return (bInt ? "ivec" : "vec") + toString(size); 
+        return (bInt ? "ivec" : "vec") + toString(size);
     }
 }
 
@@ -50,7 +50,7 @@ Uniforms::Uniforms(): cubemap(nullptr), m_change(false) {
         _shader.setUniform("u_iblLuminance", 30000.0f * getCamera().getExposure());
     },
     [this]() { return toString(30000.0f * getCamera().getExposure()); });
-    
+
     // CAMERA UNIFORMS
     //
     functions["u_camera"] = UniformFunction("vec3", [this](Shader& _shader) {
@@ -97,7 +97,7 @@ Uniforms::Uniforms(): cubemap(nullptr), m_change(false) {
         _shader.setUniform("u_cameraSensitivity", getCamera().getSensitivity());
     },
     [this]() { return toString(getCamera().getSensitivity()); });
-    
+
     functions["u_normalMatrix"] = UniformFunction("mat3", [this](Shader& _shader) {
         _shader.setUniform("u_normalMatrix", getCamera().getNormalMatrix());
     });
@@ -183,7 +183,7 @@ bool Uniforms::addTexture(const std::string& _name, const std::string& _path, Wa
         // If we can not get file stamp proably is not a file
         if (stat(_path.c_str(), &st) != 0 )
             std::cerr << "Error watching for file " << _path << std::endl;
-        
+
         // If we can lets proceed creating a texgure
         else {
             Texture* tex = new Texture();
@@ -223,7 +223,7 @@ bool Uniforms::addBumpTexture(const std::string& _name, const std::string& _path
         // If we can not get file stamp proably is not a file
         if (stat(_path.c_str(), &st) != 0 )
             std::cerr << "Error watching for file " << _path << std::endl;
-        
+
         // If we can lets proceed creating a texgure
         else {
             Texture* tex = new Texture();
@@ -299,14 +299,14 @@ void Uniforms::checkPresenceIn( const std::string &_vert_src, const std::string 
         if ( it->second.present != present) {
             it->second.present = present;
             m_change = true;
-        } 
+        }
     }
 }
 
 bool Uniforms::feedTo( Shader &_shader ) {
     bool update = false;
 
-    // Pass Native uniforms 
+    // Pass Native uniforms
     for (UniformFunctionsList::iterator it=functions.begin(); it!=functions.end(); ++it)
         if (it->second.present)
             if (it->second.assign)
@@ -344,7 +344,7 @@ bool Uniforms::feedTo( Shader &_shader ) {
     for (unsigned int i = 0; i < buffers.size(); i++) {
         _shader.setUniformTexture("u_buffer" + toString(i), &buffers[i], _shader.textureIndex++ );
     }
-    
+
     // Pass Light Uniforms
     if (lights.size() == 1) {
         if (lights[0].getType() != LIGHT_DIRECTIONAL)
@@ -400,7 +400,7 @@ void Uniforms::unflagChange() {
     getCamera().bChange = false;
 }
 
-bool Uniforms::haveChange() { 
+bool Uniforms::haveChange() {
     bool lightChange = false;
     for (unsigned int i = 0; i < lights.size(); i++) {
         if (lights[i].bChange) {
@@ -416,10 +416,11 @@ bool Uniforms::haveChange() {
     // std::cout << "  u_mouse " << functions["u_mouse"].present << std::endl;
     // std::cout << "  u_camera " << getCamera().bChange << std::endl;
 
-    return  m_change || 
-            functions["u_time"].present || 
+    return  m_change ||
+            functions["u_time"].present ||
             functions["u_delta"].present ||
             functions["u_mouse"].present ||
+            functions["u_mouse_b"].present ||
             functions["u_date"].present ||
             lightChange || getCamera().bChange;
 }
@@ -445,7 +446,7 @@ void Uniforms::clear() {
 void Uniforms::print(bool _all) {
     if (_all) {
         // Print all Native Uniforms (they carry functions)
-        for (UniformFunctionsList::iterator it= functions.begin(); it != functions.end(); ++it) {                
+        for (UniformFunctionsList::iterator it= functions.begin(); it != functions.end(); ++it) {
             std::cout << it->second.type << ',' << it->first;
             if (it->second.print) {
                 std::cout << "," << it->second.print();
@@ -455,7 +456,7 @@ void Uniforms::print(bool _all) {
     }
     else {
         // Print Native Uniforms (they carry functions) that are present on the shader
-        for (UniformFunctionsList::iterator it= functions.begin(); it != functions.end(); ++it) {                
+        for (UniformFunctionsList::iterator it= functions.begin(); it != functions.end(); ++it) {
             if (it->second.present) {
                 std::cout << it->second.type << ',' << it->first;
                 if (it->second.print) {
@@ -465,7 +466,7 @@ void Uniforms::print(bool _all) {
             }
         }
     }
-    
+
     // Print user defined uniform data
     for (UniformDataList::iterator it= data.begin(); it != data.end(); ++it) {
         std::cout << it->second.getType() << "," << it->first;
@@ -483,7 +484,7 @@ void Uniforms::print(bool _all) {
 void Uniforms::printBuffers() {
     for (size_t i = 0; i < buffers.size(); i++)
         std::cout << "sampler2D,u_buffer" << i << std::endl;
-    
+
     if (functions["u_scene"].present)
         std::cout << "sampler2D,u_scene" << std::endl;
 

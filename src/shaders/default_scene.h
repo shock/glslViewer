@@ -2,69 +2,71 @@
 
 // DEFAULT SHADERS
 // -----------------------------------------------------
-const std::string default_scene_vert = R"(
+const std::string default_scene_vert = R"(#version 410 core
 #ifdef GL_ES
 precision mediump float;
 #endif
 
+// default_scene.h
+
 uniform mat4 u_modelViewProjectionMatrix;
 
-attribute vec4  a_position;
-varying vec4    v_position;
+in vec4  a_position;
+out vec4    v_position;
 
 #ifdef MODEL_VERTEX_COLOR
-attribute vec4  a_color;
-varying vec4    v_color;
+in vec4  a_color;
+out vec4    v_color;
 #endif
 
 #ifdef MODEL_VERTEX_NORMAL
-attribute vec3  a_normal;
-varying vec3    v_normal;
+in vec3  a_normal;
+out vec3    v_normal;
 #endif
 
 #ifdef MODEL_VERTEX_TEXCOORD
-attribute vec2  a_texcoord;
-varying vec2    v_texcoord;
+in vec2  a_texcoord;
+out vec2    v_texcoord;
 #endif
 
 #ifdef MODEL_VERTEX_TANGENT
-attribute vec4  a_tangent;
-varying vec4    v_tangent;
-varying mat3    v_tangentToWorld;
+in vec4  a_tangent;
+out vec4    v_tangent;
+out mat3    v_tangentToWorld;
 #endif
 
 #ifdef LIGHT_SHADOWMAP
 uniform mat4    u_lightMatrix;
-varying vec4    v_lightCoord;
+out vec4    v_lightCoord;
 #endif
 
 void main(void) {
-    
+
     v_position = a_position;
-    
+
 #ifdef MODEL_VERTEX_COLOR
     v_color = a_color;
 #endif
-    
+
 #ifdef MODEL_VERTEX_NORMAL
     v_normal = a_normal;
 #endif
-    
+
 #ifdef MODEL_VERTEX_TEXCOORD
     v_texcoord = a_texcoord;
 #endif
-    
+
 #ifdef MODEL_VERTEX_TANGENT
     v_tangent = a_tangent;
     vec3 worldTangent = a_tangent.xyz;
     vec3 worldBiTangent = cross(v_normal, worldTangent);// * sign(a_tangent.w);
     v_tangentToWorld = mat3(normalize(worldTangent), normalize(worldBiTangent), normalize(v_normal));
 #endif
-    
+
 #ifdef LIGHT_SHADOWMAP
     v_lightCoord = u_lightMatrix * v_position;
 #endif
-    
+
     gl_Position = u_modelViewProjectionMatrix * v_position;
 }
 )";
@@ -78,23 +80,23 @@ precision mediump float;
 uniform vec3    u_camera;
 uniform vec2    u_resolution;
 
-varying vec4    v_position;
+out vec4    v_position;
 
 #ifdef MODEL_VERTEX_COLOR
-varying vec4    v_color;
+out vec4    v_color;
 #endif
 
 #ifdef MODEL_VERTEX_NORMAL
-varying vec3    v_normal;
+out vec3    v_normal;
 #endif
 
 #ifdef MODEL_VERTEX_TEXCOORD
-varying vec2    v_texcoord;
+out vec2    v_texcoord;
 #endif
 
 #ifdef MODEL_VERTEX_TANGENT
-varying mat3    v_tangentToWorld;
-varying vec4    v_tangent;
+out mat3    v_tangentToWorld;
+out vec4    v_tangent;
 #endif
 
 // #define MATERIAL_ANISOTROPY 0.9
@@ -175,7 +177,7 @@ uniform float       u_lightIntensity;
 #ifdef LIGHT_SHADOWMAP
 uniform sampler2D   u_lightShadowMap;
 uniform mat4        u_lightMatrix;
-varying vec4        v_lightCoord;
+out vec4        v_lightCoord;
 #endif
 
 #endif
@@ -185,7 +187,7 @@ varying vec4        v_lightCoord;
 
 float textureShadow(const sampler2D _shadowMap, in vec4 _coord) {
     vec3 shadowCoord = _coord.xyz / _coord.w;
-    return texture2D(_shadowMap, shadowCoord.xy).r;
+    return texture(_shadowMap, shadowCoord.xy).r;
 }
 
 float textureShadow(const sampler2D _shadowMap, in vec3 _coord) {
@@ -193,7 +195,7 @@ float textureShadow(const sampler2D _shadowMap, in vec3 _coord) {
 }
 
 float textureShadow(const sampler2D depths, vec2 uv, float compare){
-    return step(compare, texture2D(depths, uv).r );
+    return step(compare, texture(depths, uv).r );
 }
 
 float textureShadow(const sampler2D _shadowMap) {
@@ -490,7 +492,7 @@ float shadow( const sampler2D map, const vec3 shadowPosition) {
 
 float shadow() {
     return 1.0;
-}    
+}
 
 #endif
 #endif
@@ -591,7 +593,7 @@ uniform sampler2D MATERIAL_BASECOLORMAP;
 
 vec4 materialBaseColor() {
     vec4 base = vec4(1.0);
-    
+
 #if defined(MATERIAL_BASECOLORMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
     #if defined(MATERIAL_BASECOLORMAP_OFFSET)
@@ -600,7 +602,7 @@ vec4 materialBaseColor() {
     #if defined(MATERIAL_BASECOLORMAP_SCALE)
     uv *= (MATERIAL_BASECOLORMAP_SCALE).xy;
     #endif
-    base = gamma2linear( texture2D(MATERIAL_BASECOLORMAP, uv) );
+    base = gamma2linear( texture(MATERIAL_BASECOLORMAP, uv) );
 
 #elif defined(MATERIAL_BASECOLOR)
     base = MATERIAL_BASECOLOR;
@@ -635,7 +637,7 @@ vec3 materialSpecular() {
     #if defined(MATERIAL_SPECULARMAP_SCALE)
     uv *= (MATERIAL_SPECULARMAP_SCALE).xy;
     #endif
-    spec = texture2D(MATERIAL_SPECULARMAP, uv).rgb;
+    spec = texture(MATERIAL_SPECULARMAP, uv).rgb;
 #elif defined(MATERIAL_SPECULAR)
     spec = MATERIAL_SPECULAR;
 #endif
@@ -664,7 +666,7 @@ vec3 materialEmissive() {
     #if defined(MATERIAL_EMISSIVEMAP_SCALE)
     uv *= (MATERIAL_EMISSIVEMAP_SCALE).xy;
     #endif
-    emission = gamma2linear(texture2D(MATERIAL_EMISSIVEMAP, uv)).rgb;
+    emission = gamma2linear(texture(MATERIAL_EMISSIVEMAP, uv)).rgb;
 
 #elif defined(MATERIAL_EMISSIVE)
     emission = MATERIAL_EMISSIVE;
@@ -694,10 +696,10 @@ float materialOcclusion() {
 
 #if defined(MATERIAL_OCCLUSIONMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONMAP, uv).r;
+    occlusion = texture(MATERIAL_OCCLUSIONMAP, uv).r;
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    occlusion = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
+    occlusion = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).r;
 #endif
 
 #if defined(MATERIAL_OCCLUSIONMAP_STRENGTH)
@@ -728,7 +730,7 @@ vec3 materialNormal() {
 #ifdef MODEL_VERTEX_NORMAL
     normal = v_normal;
 
-    #if defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_NORMALMAP) 
+    #if defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_NORMALMAP)
     vec2 uv = v_texcoord.xy;
         #if defined(MATERIAL_NORMALMAP_OFFSET)
     uv += (MATERIAL_NORMALMAP_OFFSET).xy;
@@ -736,7 +738,7 @@ vec3 materialNormal() {
         #if defined(MATERIAL_NORMALMAP_SCALE)
     uv *= (MATERIAL_NORMALMAP_SCALE).xy;
         #endif
-    normal = texture2D(MATERIAL_NORMALMAP, uv).xyz;
+    normal = texture(MATERIAL_NORMALMAP, uv).xyz;
     normal = v_tangentToWorld * (normal * 2.0 - 1.0);
 
     #elif defined(MODEL_VERTEX_TANGENT) && defined(MODEL_VERTEX_TEXCOORD) && defined(MATERIAL_BUMPMAP_NORMALMAP)
@@ -747,9 +749,9 @@ vec3 materialNormal() {
         #if defined(MATERIAL_BUMPMAP_SCALE)
     uv *= (MATERIAL_BUMPMAP_SCALE).xy;
         #endif
-    normal = v_tangentToWorld * (texture2D(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
+    normal = v_tangentToWorld * (texture(MATERIAL_BUMPMAP_NORMALMAP, uv).xyz * 2.0 - 1.0);
     #endif
-    
+
 #endif
 
     return normal;
@@ -766,7 +768,7 @@ vec3 materialNormal() {
 #ifndef FNC_TOMETALLIC
 #define FNC_TOMETTALIC
 
-// Gets metallic factor from specular glossiness workflow inputs 
+// Gets metallic factor from specular glossiness workflow inputs
 float toMetallic(vec3 diffuse, vec3 specular, float maxSpecular) {
     float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
     float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
@@ -804,7 +806,7 @@ uniform sampler2D MATERIAL_ROUGHNESSMETALLICMAP;
 #define MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP_UNIFORM
 uniform sampler2D MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP;
 #endif
-    
+
 float materialMetallic() {
     float metallic = 0.0;
 
@@ -816,15 +818,15 @@ float materialMetallic() {
     #if defined(MATERIAL_METALLICMAP_SCALE)
     uv *= (MATERIAL_METALLICMAP_SCALE).xy;
     #endif
-    metallic = texture2D(MATERIAL_METALLICMAP, uv).b;
+    metallic = texture(MATERIAL_METALLICMAP, uv).b;
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
+    metallic = texture(MATERIAL_ROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    metallic = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
+    metallic = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).b;
 
 #elif defined(MATERIAL_METALLIC)
     metallic = MATERIAL_METALLIC;
@@ -870,15 +872,15 @@ float materialRoughness() {
     #if defined(MATERIAL_ROUGHNESSMAP_SCALE)
     uv *= (MATERIAL_ROUGHNESSMAP_SCALE).xy;
     #endif
-    roughness = texture2D(MATERIAL_ROUGHNESSMAP, uv).g;
+    roughness = texture(MATERIAL_ROUGHNESSMAP, uv).g;
 
 #elif defined(MATERIAL_ROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_ROUGHNESSMETALLICMAP, uv).g;
+    roughness = texture(MATERIAL_ROUGHNESSMETALLICMAP, uv).g;
 
 #elif defined(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP) && defined(MODEL_VERTEX_TEXCOORD)
     vec2 uv = v_texcoord.xy;
-    roughness = texture2D(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g;
+    roughness = texture(MATERIAL_OCCLUSIONROUGHNESSMETALLICMAP, uv).g;
 
 #elif defined(MATERIAL_ROUGHNESS)
     roughness = MATERIAL_ROUGHNESS;
@@ -933,7 +935,7 @@ struct Material {
     vec4    baseColor;
     vec3    emissive;
     vec3    normal;
-    
+
     vec3    f0;
     float   reflectance;
 
@@ -1399,7 +1401,7 @@ vec3 fresnel(vec3 _R, vec3 _f0, float _NoV) {
 #endif
 
 #ifndef FNC_SPECULAR_PHONG
-#define FNC_SPECULAR_PHONG 
+#define FNC_SPECULAR_PHONG
 
 // https://github.com/glslify/glsl-specular-phong
 float specularPhong(vec3 L, vec3 N, vec3 V, float shininess) {
@@ -1475,7 +1477,7 @@ float specularCookTorrance(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, fl
 
     float x = 2.0 * NoH / VoH;
     float G = min(1.0, min(x * NoV, x * NoL));
-    
+
     //Distribution term
     float D = beckmann(NoH, _roughness);
 
@@ -1647,7 +1649,7 @@ float specular(vec3 L, vec3 N, vec3 V, float roughness) {
 
 #if defined(SPECULAR_GAUSSIAN)
     return specularGaussian(L, N, V, roughness);
-    
+
 #elif defined(SPECULAR_BLECKMANN)
     return specularBeckmann(L, N, V, roughness);
 
@@ -1670,7 +1672,7 @@ float specular(vec3 L, vec3 N, vec3 V, float roughness) {
     #else
     float f0 = 0.04;
     return specularCookTorrance(L, N, V, roughness, f0);
-    #endif  
+    #endif
 
 #endif
 }
@@ -1702,7 +1704,7 @@ float specular(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness, fl
     return specularBlinnPhong(L, N, V, shininess);
     #else
     return specularCookTorrance(L, N, V, roughness, fresnel);
-    #endif  
+    #endif
 
 #endif
 }
@@ -1727,7 +1729,7 @@ float diffuseLambert(vec3 L, vec3 N) {
 
 float diffuseOrenNayar(vec3 L, vec3 N, vec3 V, float NoV, float NoL, float roughness) {
     float LoV = dot(L, V);
-    
+
     float s = LoV - NoL * NoV;
     float t = mix(1.0, max(NoL, NoV), step(0.0, s));
 
@@ -1791,7 +1793,7 @@ float diffuse(vec3 L, vec3 N, vec3 V, float roughness) {
 #else
     return diffuseLambert(L, N);
 
-#endif    
+#endif
 }
 
 float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughness) {
@@ -1803,7 +1805,7 @@ float diffuse(vec3 _L, vec3 _N, vec3 _V, float _NoV, float _NoL, float _roughnes
 
 #else
     return diffuseLambert(_L, _N);
-#endif    
+#endif
 }
 
 #endif
@@ -1834,7 +1836,7 @@ void lightPoint(vec3 _diffuseColor, vec3 _specularColor, vec3 _N, vec3 _V, float
     float fall = 1.0;
     if (u_lightFalloff > 0.0)
         fall = falloff(length(u_light - v_position.xyz), u_lightFalloff);
-    
+
     _diffuse = u_lightIntensity * (_diffuseColor * u_lightColor * dif * fall);
     _specular = u_lightIntensity * (_specularColor * u_lightColor * spec * fall);
 }
@@ -1874,7 +1876,7 @@ vec4 pbr(const Material _mat) {
     float NoV = dot(N, V);                            // Normal . View
     float f0  = max(_mat.f0.r, max(_mat.f0.g, _mat.f0.b));
     float roughness = _mat.roughness;
-    
+
     // Reflect
     vec3    R = reflection(V, N, roughness);
 
@@ -1882,8 +1884,8 @@ vec4 pbr(const Material _mat) {
     // ------------------------
     float ssao = 1.0;
 #ifdef SCENE_SSAO
-    ssao = texture2D(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
-#endif 
+    ssao = texture(SCENE_SSAO, gl_FragCoord.xy/u_resolution).r;
+#endif
     float diffuseAO = min(_mat.ambientOcclusion, ssao);
     float specularAO = specularAO(NoV, diffuseAO, roughness);
 
@@ -1908,7 +1910,7 @@ vec4 pbr(const Material _mat) {
     vec3 lightDiffuse = vec3(0.0);
     vec3 lightSpecular = vec3(0.0);
     lightWithShadow(diffuseColor, specularColor, N, V, NoV, roughness, f0, lightDiffuse, lightSpecular);
-    
+
     // Final Sum
     // ------------------------
     vec4 color = vec4(0.0);
@@ -1927,18 +1929,18 @@ vec4 pbr(const Material _mat) {
 void main(void) {
     Material mat = MaterialInit();
 
-#ifdef FLOOR 
+#ifdef FLOOR
     vec2 st = v_texcoord - 0.5;
     st *= 7.0;
     vec4 t = vec4(  fract(st),
                     floor(st));
     vec2 c = mod(t.zw, 2.0);
     float p = abs(c.x-c.y) * 0.5;
-             
+
     mat.baseColor += p;
     mat.roughness = 0.5 + p * 0.5;
 #endif
-    
+
     gl_FragColor = pbr(mat);
 }
 

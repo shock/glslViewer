@@ -15,9 +15,13 @@ enum WindowStyle {
 
 //	GL Context
 //----------------------------------------------
-void initGL(glm::ivec4 &_viewport, WindowStyle _prop = REGULAR);
+void initGL(glm::ivec4 &_viewport, WindowStyle _prop = REGULAR, bool vsync = true);
 bool isGL();
-void updateGL();
+void setVsync( bool on );
+void fastForwardTime( double amount );
+void rewindTime( double amount );
+void resetTime();
+void updateGL(bool paused);
 void renderGL();
 void closeGL();
 
@@ -52,9 +56,15 @@ glm::vec2 getMouseVelocity();
 int getMouseButton();
 glm::vec4 getMouse4();
 
+
+// From main.cpp
+
+extern bool inputLocked;
+
+
 // EVENTS
 //----------------------------------------------
-void onKeyPress(int _key);
+void onKeyPress(int _key, int _mods);
 void onMouseMove(float _x, float _y);
 void onMouseClick(float _x, float _y, int _button);
 void onMouseDrag(float _x, float _y, int _button);

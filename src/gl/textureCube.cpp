@@ -22,7 +22,7 @@
 // https://github.com/google/filament/blob/master/tools/cmgen/src/CubemapSH.cpp
 // -----------------------------------------------------------------------------------------------
 
-TextureCube::TextureCube() 
+TextureCube::TextureCube()
 : SH {  glm::vec3(0.0), glm::vec3(0.0), glm::vec3(0.0),
         glm::vec3(0.0), glm::vec3(0.0), glm::vec3(0.0),
         glm::vec3(0.0), glm::vec3(0.0), glm::vec3(0.0) } {
@@ -32,7 +32,7 @@ TextureCube::~TextureCube() {
     glDeleteTextures(1, &m_id);
 }
 
-template <typename T> 
+template <typename T>
 void splitFacesFromVerticalCross(T *_data, int _width, int _height, Face<T> **_faces ) {
     int faceWidth = _width / 3;
     int faceHeight = _height / 4;
@@ -54,9 +54,9 @@ void splitFacesFromVerticalCross(T *_data, int _width, int _height, Face<T> **_f
             int offset = 3 * (faceWidth * iFace + l * _width);
 
             //      0   1   2   i
-            //  3      -Z       
-            //  2      -X 
-            //  1  -Y  +Z  +Y       
+            //  3      -Z
+            //  2      -X
+            //  1  -Y  +Z  +Y
             //  0      +X
             //  j
             //
@@ -78,7 +78,7 @@ void splitFacesFromVerticalCross(T *_data, int _width, int _height, Face<T> **_f
     }
 }
 
-template <typename T> 
+template <typename T>
 void splitFacesFromHorizontalCross(T *_data, int _width, int _height, Face<T> **_faces ) {
     int faceWidth = _width / 4;
     int faceHeight = _height / 3;
@@ -99,9 +99,9 @@ void splitFacesFromHorizontalCross(T *_data, int _width, int _height, Face<T> **
             Face<T> *face = NULL;
             int offset = 3 * (faceWidth * iFace + l * _width);
 
-            //      0   1   2   3 i      
-            //  2      -X 
-            //  1  -Y  +Z  +Y  -Z     
+            //      0   1   2   3 i
+            //  2      -X
+            //  1  -Y  +Z  +Y  -Z
             //  0      +X
             //  j
             //
@@ -123,7 +123,7 @@ void splitFacesFromHorizontalCross(T *_data, int _width, int _height, Face<T> **
     }
 }
 
-template <typename T> 
+template <typename T>
 void splitFacesFromHorizontalRow(T *_data, int _width, int _height, Face<T> **_faces ) {
     int faceWidth = _width / 6;
     int faceHeight = _height;
@@ -143,8 +143,8 @@ void splitFacesFromHorizontalRow(T *_data, int _width, int _height, Face<T> **_f
             Face<T> *face = NULL;
             int offset = 3 * (faceWidth * iFace + l * _width);
 
-            //   0   1   2   3   4   5 i      
-            //  +X  -X  +Y  -Y  +Z  -Z 
+            //   0   1   2   3   4   5 i
+            //  +X  -X  +Y  -Y  +Z  -Z
             //
             face = _faces[iFace];
 
@@ -159,7 +159,7 @@ void splitFacesFromHorizontalRow(T *_data, int _width, int _height, Face<T> **_f
     }
 }
 
-template <typename T> 
+template <typename T>
 void splitFacesFromVerticalRow(T *_data, int _width, int _height, Face<T> **_faces ) {
     int faceWidth = _width;
     int faceHeight = _height/6;
@@ -179,8 +179,8 @@ void splitFacesFromVerticalRow(T *_data, int _width, int _height, Face<T> **_fac
             Face<T> *face = NULL;
             int offset = 3 * (faceWidth * iFace + l * _width);
 
-            //   0   1   2   3   4   5 j      
-            //  +X  -X  +Y  -Y  +Z  -Z 
+            //   0   1   2   3   4   5 j
+            //  +X  -X  +Y  -Y  +Z  -Z
             //
             face = _faces[jFace];
 
@@ -197,7 +197,7 @@ void splitFacesFromVerticalRow(T *_data, int _width, int _height, Face<T> **_fac
 
 // From
 // https://github.com/dariomanesku/cmft/blob/master/src/cmft/image.cpp#L3124
-template <typename T> 
+template <typename T>
 void splitFacesFromEquilateral(T *_data, unsigned int _width, unsigned int _height, Face<T> **_faces ) {
     // Alloc data.
     const uint32_t faceWidth = (_height + 1)/2;
@@ -291,7 +291,9 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     if (m_id != 0) {
         // Init
         glGenTextures(1, &m_id);
+        check(false);
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
+        check(false);
     }
 
     int sh_samples = 0;
@@ -320,7 +322,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
                     faces[5]->flipVertical();
                 }
             }
-            
+
         }
         else {
             if (m_width/2 == m_height) {
@@ -336,7 +338,7 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
                 splitFacesFromHorizontalCross<unsigned char>(data, m_width, m_height, faces);
             }
         }
-        
+
         for (int i = 0; i < 6; i++) {
             faces[i]->upload();
             sh_samples += faces[i]->calculateSH(SH);
@@ -412,18 +414,32 @@ bool TextureCube::load(const std::string &_path, bool _vFlip) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 #else
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    check(false);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    check(false);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    // check(false);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+    // check(false);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    check(false);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    check(false);
 #endif
-    
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-    m_path = _path;             
+    // TRAC;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+check(false);
+    m_path = _path;
     return true;
 }
 
@@ -441,9 +457,9 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
     m_height = int(_width/2);
     int nPixels = m_width * m_height * 3;
 
-    float *data = new float[nPixels]; 
+    float *data = new float[nPixels];
 
-    // FILAMENT SKYGEN 
+    // FILAMENT SKYGEN
     // https://github.com/google/filament/blob/master/tools/skygen/src/main.cpp
     //
     float solarElevation = _skybox->elevation;
@@ -468,9 +484,9 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
         float v = (y + 0.5f) / m_height;
         float theta = float(M_PI * v);
 
-        if (theta > M_PI_2) 
+        if (theta > M_PI_2)
             continue;
-            
+
         for (int x = 0; x < m_width; x++) {
             float u = (x + 0.5f) / m_width;
             float phi = float(-2.0 * M_PI * u + M_PI + _skybox->azimuth);
@@ -525,7 +541,7 @@ bool TextureCube::generate(SkyBox* _skybox, int _width ) {
     // LOAD FACES
     Face<float> **faces = new Face<float>*[6];
     splitFacesFromEquilateral<float>(data, m_width, m_height, faces);
-    
+
     for (int i = 0; i < 6; i++) {
         faces[i]->upload();
         sh_samples += faces[i]->calculateSH(SH);

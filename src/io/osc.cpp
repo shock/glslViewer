@@ -2,6 +2,7 @@
 #include "../tools/text.h"
 
 Osc::Osc() {
+    m_verbose = false;
 }
 
 Osc::~Osc() {
@@ -18,11 +19,11 @@ bool Osc::start(int _port, std::function<void(const std::string &_cmd, std::mute
 
     m_port = _port;
     m_runCmd = _runCmd;
-        
+
     // // manually set larger buffer size instead of oscpack per-message size
     // if (UdpSocket::GetUdpBufferSize() == 0)
     //    UdpSocket::SetUdpBufferSize(65535);
-        
+
     // create socket
     UdpListeningReceiveSocket *socket = nullptr;
     try {
@@ -68,7 +69,7 @@ bool Osc::start(int _port, std::function<void(const std::string &_cmd, std::mute
     // or on destruction, the custom deleter for the socket unique_ptr already
     // does the right thing
     listenThread.detach();
-        
+
     return true;
 }
 
@@ -79,7 +80,7 @@ void Osc::stop() {
 void Osc::ProcessMessage( const osc::ReceivedMessage& _m, const IpEndpointName& _remoteEndpoint ){
     try {
         osc::ReceivedMessage::const_iterator arg = _m.ArgumentsBegin();
-        
+
         // Convert OSC message to CSV
         std::string line;
 
@@ -118,12 +119,14 @@ void Osc::ProcessMessage( const osc::ReceivedMessage& _m, const IpEndpointName& 
             arg++;
         }
 
+        if( m_verbose ) {
+            std::cout << line << std::endl;
+        }
 
-        std::cout << line << std::endl;
-        m_runCmd(line, m_mutex); 
+        m_runCmd(line, m_mutex);
     }
     catch( osc::Exception& e ) {
-        // any parsing errors such as unexpected argument types, or 
+        // any parsing errors such as unexpected argument types, or
         // missing arguments get thrown as exceptions.
         std::cout   << "error while parsing message: "
                     << _m.AddressPattern() << ": " << e.what() << "\n";
